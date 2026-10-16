@@ -1,0 +1,450 @@
+<!doctype html>
+<html lang="zh-Hant">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>牧場座標探險</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=DotGothic16&family=Noto+Sans+TC:wght@500;700;900&display=swap">
+<style>
+/* Layout: one pixel-farm world. Left: the farm map (a coordinate plane drawn as pixel art). Right: wooden signboard panel with the question. Stacks on narrow screens. */
+:root{
+  --grass:#8cc47a; --grass-d:#6fae63; --sky:#e9f3dc; --wood:#b07a4a; --wood-d:#7a4f2e; --wood-l:#d9a46b;
+  --paper:#fbf3df; --ink:#3a2a1e; --ink-soft:#7a6450; --ok:#3f9a4f; --bad:#d9533b; --gold:#f2b134;
+  --f-ui:"Noto Sans TC","PingFang TC","Microsoft JhengHei",sans-serif;
+  --f-px:"DotGothic16","Noto Sans TC",monospace;
+  color-scheme:light;
+}
+*{box-sizing:border-box}
+[hidden]{display:none!important}
+html,body{height:100%}
+body{margin:0;background:var(--grass-d);background-image:radial-gradient(rgba(255,255,255,.08) 2px,transparent 2px);background-size:16px 16px;color:var(--ink);font-family:var(--f-ui);-webkit-tap-highlight-color:transparent}
+button{font-family:inherit;color:inherit;cursor:pointer}
+button:focus-visible{outline:3px solid var(--gold);outline-offset:2px}
+
+.app{min-height:100%;display:grid;grid-template-columns:auto minmax(0,1fr);gap:16px;align-items:start;
+  padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));
+  padding-block:calc(14px + env(safe-area-inset-top,0px)) calc(14px + env(safe-area-inset-bottom,0px));max-width:1400px;margin:0 auto}
+.mapWrap{width:min(calc(100vh - 28px),62vw);aspect-ratio:1;position:relative;border:6px solid var(--wood-d);border-radius:6px;box-shadow:0 6px 0 rgba(0,0,0,.25);background:var(--grass);touch-action:manipulation}
+#map{width:100%;height:100%;display:block;image-rendering:pixelated;cursor:crosshair;touch-action:none}
+#map.grab{cursor:grab}#map.dragging{cursor:grabbing}
+.mapWrap.locked #map{cursor:default}
+
+.panel{display:flex;flex-direction:column;gap:12px;min-width:0}
+.sign{background:var(--wood);border:4px solid var(--wood-d);border-radius:6px;box-shadow:inset 0 4px 0 var(--wood-l),0 5px 0 rgba(0,0,0,.25);padding:12px 16px;color:#fff8e8}
+.sign h1{margin:0;font-size:clamp(22px,2.8vw,34px);font-weight:900;letter-spacing:.06em;text-shadow:0 3px 0 var(--wood-d)}
+.hud{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:8px}
+.hud div{background:var(--paper);border:3px solid var(--wood-d);border-radius:4px;padding:6px 8px;text-align:center}
+.hud small{display:block;font-size:13px;color:var(--ink-soft);font-weight:700}
+.hud b{font-family:var(--f-px);font-size:clamp(20px,2.2vw,28px);font-weight:400;font-variant-numeric:tabular-nums}
+.card{background:var(--paper);border:4px solid var(--wood-d);border-radius:6px;padding:16px 18px;box-shadow:0 5px 0 rgba(0,0,0,.2)}
+.qtag{display:inline-block;font-size:14px;font-weight:900;color:#fff;background:var(--wood-d);padding:2px 10px;border-radius:3px;margin-bottom:8px}
+.qtext{font-size:clamp(20px,2.4vw,30px);font-weight:900;line-height:1.45;margin:0}
+.coord{font-family:var(--f-px);font-weight:400;color:#b4521f;white-space:nowrap}
+.hint{font-size:15px;color:var(--ink-soft);margin:6px 0 0;font-weight:700}
+.opts{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}
+.opts.five{grid-template-columns:repeat(2,minmax(0,1fr))}
+.opt{min-height:64px;border:4px solid var(--wood-d);border-radius:6px;background:#fff8e8;box-shadow:0 5px 0 var(--wood-d);font-size:clamp(20px,2.2vw,28px);font-weight:900;padding:6px}
+.opt .coord{color:var(--ink)}
+.opt:active{transform:translateY(3px);box-shadow:0 2px 0 var(--wood-d)}
+.opt.ok{background:#d9f2d4;border-color:var(--ok);box-shadow:0 5px 0 var(--ok)}
+.opt.no{background:#f9d9d2;border-color:var(--bad);box-shadow:0 5px 0 var(--bad)}
+.opt[disabled]{cursor:default}
+.opts.five .opt:last-child{grid-column:1/-1}
+.fb{border-radius:6px;padding:12px 16px;font-weight:700;font-size:clamp(16px,1.7vw,20px);line-height:1.6;border:3px solid}
+.fb.good{background:#e3f5dc;border-color:var(--ok);color:#245c2f}
+.fb.bad{background:#fbe5df;border-color:var(--bad);color:#7d2a1a}
+.fb strong{font-size:1.15em}
+.next{align-self:flex-end;border:4px solid var(--wood-d);background:var(--gold);box-shadow:0 5px 0 var(--wood-d);border-radius:6px;padding:10px 26px;font-size:20px;font-weight:900}
+.next:active{transform:translateY(3px);box-shadow:0 2px 0 var(--wood-d)}
+.tools{display:flex;gap:8px;justify-content:flex-end}
+.tbtn{border:3px solid var(--wood-d);background:var(--paper);border-radius:4px;padding:4px 12px;font-weight:700;font-size:14px}
+
+/* overlays */
+.screen{position:fixed;inset:0;z-index:20;overflow-y:auto;display:flex;align-items:center;justify-content:center;background:rgba(58,42,30,.55);
+  padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));padding-block:calc(16px + env(safe-area-inset-top,0px)) calc(16px + env(safe-area-inset-bottom,0px))}
+.board{width:min(860px,100%);background:var(--paper);border:6px solid var(--wood-d);border-radius:8px;box-shadow:0 8px 0 rgba(0,0,0,.3);padding:22px clamp(16px,3vw,32px);display:flex;flex-direction:column;gap:16px}
+.board h2{margin:0;text-align:center;font-size:clamp(32px,5vw,56px);font-weight:900;color:var(--wood-d);letter-spacing:.08em;text-shadow:0 4px 0 #e8c79a}
+.board .sub{margin:0;text-align:center;color:var(--ink-soft);font-weight:700;font-size:17px}
+.howto{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px}
+.howto div{background:#fff;border:3px solid #e2cfa9;border-radius:6px;padding:10px 12px;font-size:15px;line-height:1.55}
+.howto b{display:block;font-size:17px;color:var(--wood-d)}
+.levels{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px}
+.lv{border:4px solid var(--wood-d);border-radius:8px;background:#fff8e8;box-shadow:0 6px 0 var(--wood-d);padding:14px 12px;text-align:left;display:flex;flex-direction:column;gap:6px}
+.lv:active{transform:translateY(3px);box-shadow:0 3px 0 var(--wood-d)}
+.lv strong{font-size:22px;font-weight:900}
+.lv span{font-size:15px;color:var(--ink-soft);line-height:1.5}
+.lv i{font-style:normal;font-family:var(--f-px);color:#b4521f}
+.stars{text-align:center;font-size:48px;color:var(--gold);letter-spacing:8px;text-shadow:0 3px 0 var(--wood-d)}
+.rgrid{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;text-align:center}
+.rgrid div{background:#fff;border:3px solid #e2cfa9;border-radius:6px;padding:10px}
+.rgrid small{display:block;color:var(--ink-soft);font-weight:700}
+.rgrid b{font-family:var(--f-px);font-size:32px;font-weight:400}
+.miss h3{margin:0 0 6px;font-size:17px;color:var(--ink-soft)}
+.miss ul{margin:0;padding:0;list-style:none;display:flex;flex-direction:column;gap:6px}
+.miss li{background:#fbe5df;border-left:5px solid var(--bad);border-radius:4px;padding:8px 12px;font-weight:700;line-height:1.5}
+.row{display:flex;gap:10px;justify-content:center;flex-wrap:wrap}
+.big{border:4px solid var(--wood-d);background:var(--gold);box-shadow:0 6px 0 var(--wood-d);border-radius:8px;padding:12px 28px;font-size:22px;font-weight:900}
+.big.ghost{background:#fff8e8}
+
+@media (max-width:860px){
+  .app{grid-template-columns:1fr}
+  .mapWrap{width:100%;max-width:640px;margin:0 auto;order:4}
+  .panel{display:contents}
+  .sign{order:1}.hud{order:2}.card{order:3}.opts{order:5}.fb{order:6}.next{order:7;justify-self:end}.tools{order:8}
+  .howto,.levels{grid-template-columns:1fr}
+  .hud small{font-size:12px}
+}
+@media (prefers-reduced-motion:reduce){*{transition:none!important;animation:none!important}}
+</style>
+
+</head>
+<body>
+<div class="app">
+  <div class="mapWrap" id="mapWrap"><canvas id="map" width="896" height="896" aria-label="牧場座標地圖"></canvas></div>
+  <div class="panel">
+    <div class="sign"><h1>牧場座標探險</h1></div>
+    <div class="hud">
+      <div><small>題目</small><b id="hQ">1/10</b></div>
+      <div><small>答對</small><b id="hOk">0</b></div>
+      <div><small>連續答對</small><b id="hSt">0</b></div>
+      <div><small>金幣</small><b id="hCoin">0</b></div>
+    </div>
+    <div class="card">
+      <span class="qtag" id="qTag">讀座標</span>
+      <p class="qtext" id="qText"></p>
+      <p class="hint" id="qHint"></p>
+    </div>
+    <div class="opts" id="opts"></div>
+    <div class="fb" id="fb" hidden></div>
+    <button class="next" id="nextBtn" type="button" hidden>下一題 ▶</button>
+    <div class="tools"><button class="tbtn" id="muteBtn" type="button" aria-pressed="false">聲音：開</button><button class="tbtn" id="homeBtn" type="button">換關卡</button></div>
+  </div>
+</div>
+
+<div class="screen" id="startScreen">
+  <div class="board">
+    <h2>牧場座標探險</h2>
+    <p class="sub">國中數學 · 直角坐標平面　幫農夫照顧牧場的動物！</p>
+    <div class="howto">
+      <div><b>讀座標</b>看動物站在哪個點，選出正確的座標 <span class="coord">(x, y)</span>。</div>
+      <div><b>描點</b>題目給座標，點地圖上的交叉點，把動物帶過去。</div>
+      <div><b>判斷象限</b>說出動物在第幾象限，或是站在坐標軸上。</div>
+    </div>
+    <div class="levels">
+      <button class="lv" type="button" data-lv="1"><strong>第一關　小牧場</strong><span>只有第一象限，<i>x</i>、<i>y</i> 都是 0～5。先熟悉「先左右、再上下」。</span></button>
+      <button class="lv" type="button" data-lv="2"><strong>第二關　大牧場</strong><span>四個象限都有，會出現負數座標。</span></button>
+      <button class="lv" type="button" data-lv="3"><strong>第三關　象限專家</strong><span>加入象限判斷，還有站在坐標軸上的點。</span></button>
+    </div>
+    <p class="sub">每關 10 題，答對得金幣，連續答對 3 題有額外獎勵。</p>
+  </div>
+</div>
+
+<div class="screen" id="resultScreen" hidden>
+  <div class="board">
+    <h2 id="rTitle">收工囉！</h2>
+    <div class="stars" id="rStars">★★★</div>
+    <div class="rgrid">
+      <div><small>答對題數</small><b id="rOk">0</b></div>
+      <div><small>答錯題數</small><b id="rNo">0</b></div>
+      <div><small>金幣</small><b id="rCoin">0</b></div>
+    </div>
+    <div class="miss" id="rMiss" hidden><h3>再看一次答錯的題目</h3><ul id="rList"></ul></div>
+    <div class="row"><button class="big" id="againBtn" type="button">再玩一次</button><button class="big ghost" id="backBtn" type="button">換關卡</button></div>
+  </div>
+</div>
+
+<script>
+(function(){
+"use strict";
+const $=id=>document.getElementById(id);
+const ri=(a,b)=>a+Math.floor(Math.random()*(b-a+1));
+const pick=a=>a[Math.floor(Math.random()*a.length)];
+const shuffle=a=>{a=a.slice();for(let i=a.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[a[i],a[j]]=[a[j],a[i]]}return a};
+const N=n=>n<0?'−'+(-n):''+n;
+const C=(x,y)=>`(${N(x)}, ${N(y)})`;
+const CH=(x,y)=>`<span class="coord">${C(x,y)}</span>`;
+
+/* ================= 像素繪圖 ================= */
+const cv=$('map'),g=cv.getContext('2d');g.imageSmoothingEnabled=false;
+const P=4;                 // 1 個像素 = 4 個畫布點
+const CELL=16;             // 每格 16 像素
+const toAX=x=>(7+x)*CELL, toAY=y=>(7-y)*CELL;   // 座標 -> 像素位置
+const px=(x,y,w,h,c)=>{g.fillStyle=c;g.fillRect(Math.round(x)*P,Math.round(y)*P,w*P,h*P)};
+const OUT='#3a2a1e';
+function sprite(parts,cx,cy){ // parts: [x,y,w,h,color,outline?]
+  for(const p of parts) if(p[5]!==false) px(cx+p[0]-1,cy+p[1]-1,p[2]+2,p[3]+2,OUT);
+  for(const p of parts) px(cx+p[0],cy+p[1],p[2],p[3],p[4]);
+}
+// 隨機但固定的地面花紋
+let seed=7;const rnd=()=>(seed=(seed*16807)%2147483647)/2147483647;
+const deco=[];for(let i=0;i<70;i++)deco.push([Math.floor(rnd()*220),Math.floor(rnd()*220),rnd()]);
+
+const ART={
+ chicken:[[-4,-2,8,6,'#f7f3ea'],[1,-7,5,5,'#f7f3ea'],[2,-9,3,2,'#d9533b'],[6,-5,2,1,'#f2a33a',false],[4,-6,1,1,OUT,false],[-6,-4,2,3,'#f7f3ea'],[-2,4,1,2,'#f2a33a',false],[1,4,1,2,'#f2a33a',false],[-2,0,4,2,'#e7dfcf',false]],
+ cow:[[-7,-3,12,7,'#f7f3ea'],[-5,-2,3,3,OUT,false],[0,1,3,2,OUT,false],[4,-7,6,6,'#f7f3ea'],[5,-3,5,2,'#f0a3a3',false],[7,-6,1,1,OUT,false],[3,-8,2,2,'#5c3a26'],[9,-8,2,2,'#5c3a26'],[-6,4,2,3,'#f7f3ea'],[-2,4,2,3,'#f7f3ea'],[2,4,2,3,'#f7f3ea'],[-8,-2,1,4,OUT,false]],
+ sheep:[[-6,-3,11,7,'#fff8ec'],[-7,-1,2,3,'#fff8ec',false],[-4,-5,3,2,'#fff8ec',false],[0,-5,3,2,'#fff8ec',false],[4,-6,5,5,'#4a4040'],[6,-5,1,1,'#fff',false],[3,-6,2,2,'#4a4040',false],[-4,4,2,3,'#4a4040'],[1,4,2,3,'#4a4040']],
+ pig:[[-6,-3,11,7,'#f4a8b0'],[4,-6,6,6,'#f4a8b0'],[8,-3,3,2,'#e07f8c',false],[6,-5,1,1,OUT,false],[4,-8,2,2,'#e07f8c'],[-5,4,2,3,'#f4a8b0'],[1,4,2,3,'#f4a8b0'],[-8,-2,2,2,'#e07f8c',false]],
+ carrot:[[-2,-2,4,6,'#ef8a2e'],[-1,4,2,2,'#ef8a2e'],[-3,-6,2,4,'#4f9a5a'],[1,-7,2,5,'#4f9a5a'],[-1,-8,2,6,'#3c8148']],
+ farmer:[[-3,-4,6,5,'#f2c8a0'],[-5,-6,10,2,'#e8c25a'],[-3,-9,6,3,'#e8c25a'],[-1,-2,1,1,OUT,false],[2,-2,1,1,OUT,false],[-4,1,8,5,'#d9533b'],[-3,3,6,5,'#3d6fb6'],[-3,8,2,2,'#5c3a26'],[1,8,2,2,'#5c3a26']]
+};
+const ANIMALS=[{k:'chicken',n:'小雞'},{k:'cow',n:'乳牛'},{k:'sheep',n:'綿羊'},{k:'pig',n:'小豬'}];
+
+function tree(x,y){sprite([[-1,4,3,5,'#7a4f2e'],[-6,-6,13,10,'#3c8148'],[-4,-9,9,4,'#4f9a5a',false],[-5,-4,3,3,'#5fae6a',false]],x,y)}
+function bush(x,y){sprite([[-4,-2,8,5,'#4f9a5a'],[-2,-4,4,3,'#5fae6a',false]],x,y)}
+function flower(x,y,c){px(x,y,2,2,c);px(x,y+2,1,2,'#3c8148')}
+
+function drawMap(st){
+  // 地面
+  px(0,0,224,224,'#8cc47a');
+  for(const [x,y,r] of deco){ if(r<.5)px(x,y,2,1,'#78b56a'); else if(r<.8)px(x,y,1,2,'#9fd08a'); }
+  // 外圍小路與柵欄
+  px(0,0,224,10,'#c9a36b');px(0,214,224,10,'#c9a36b');px(0,0,10,224,'#c9a36b');px(214,0,10,224,'#c9a36b');
+  for(let i=4;i<224;i+=12){px(i,2,3,7,'#7a4f2e');px(i,215,3,7,'#7a4f2e');px(2,i,7,3,'#7a4f2e');px(215,i,7,3,'#7a4f2e')}
+  px(0,4,224,2,'#b07a4a');px(0,217,224,2,'#b07a4a');px(4,0,2,224,'#b07a4a');px(217,0,2,224,'#b07a4a');
+  // 角落裝飾
+  tree(18,18);tree(204,24);flower(14,206,'#f2b134');flower(22,208,'#f0a3a3');flower(200,140,'#fff');sprite(ART.farmer,206,201);
+  // 格線
+  for(let i=-5;i<=5;i++){ px(toAX(i),toAY(5)-4,1,toAY(-5)-toAY(5)+8,'rgba(255,255,255,.35)'); px(toAX(-5)-4,toAY(i),toAX(5)-toAX(-5)+8,1,'rgba(255,255,255,.35)'); }
+  // 坐標軸（泥土小路）
+  px(toAX(-5)-10,toAY(0)-2,toAX(5)-toAX(-5)+20,5,'#c9a36b');px(toAX(0)-2,toAY(5)-10,5,toAY(-5)-toAY(5)+20,'#c9a36b');
+  px(toAX(-5)-10,toAY(0),toAX(5)-toAX(-5)+20,1,'#a9824f');px(toAX(0),toAY(5)-10,1,toAY(-5)-toAY(5)+20,'#a9824f');
+  // 軸上的刻度
+  for(let i=-5;i<=5;i++){px(toAX(i),toAY(0)-3,1,7,'#7a4f2e');px(toAX(0)-3,toAY(i),7,1,'#7a4f2e')}
+  // 箭頭
+  const ax=toAX(5)+10,ay=toAY(0);px(ax,ay-3,2,7,'#7a4f2e');px(ax+2,ay-2,2,5,'#7a4f2e');px(ax+4,ay-1,2,3,'#7a4f2e');
+  const bx=toAX(0),by=toAY(5)-10;px(bx-3,by,7,2,'#7a4f2e');px(bx-2,by-2,5,2,'#7a4f2e');px(bx-1,by-4,3,2,'#7a4f2e');
+  // 交叉點
+  for(let x=-5;x<=5;x++)for(let y=-5;y<=5;y++){ if(st.range&&(x<st.range[0]||y<st.range[0]))continue; px(toAX(x),toAY(y),1,1,'rgba(58,42,30,.45)'); }
+  // 第一關：遮住不用的區域
+  if(st.range&&st.range[0]===0){
+    g.fillStyle='rgba(58,42,30,.18)';
+    g.fillRect(10*P,10*P,(toAX(0)-12)*P,204*P);g.fillRect(toAX(0)*P,(toAY(0)+3)*P,(214-toAX(0))*P,(214-toAY(0)-3)*P);
+  }
+  // 數字
+  g.font=`${6*P}px DotGothic16, monospace`;g.textAlign='center';g.textBaseline='middle';
+  for(let i=-5;i<=5;i++){
+    if(i===0)continue;
+    if(st.range&&i<st.range[0])continue;
+    // 數字放在地圖外圍，正對各自的格線
+    txt(N(i),toAX(i),toAY(-5)+11);
+    txt(N(i),toAX(-5)-12,toAY(i));
+  }
+  txt('0',toAX(0),toAY(-5)+11);txt('0',toAX(-5)-12,toAY(0));
+  g.font=`italic bold ${6*P}px Georgia, serif`;txt('O',toAX(0)-5,toAY(0)+6);
+  g.font=`italic ${8*P}px Georgia, serif`;txt('x',toAX(5)+16,toAY(0)-8);txt('y',toAX(0)+9,toAY(5)-14);
+  // 提示路徑
+  if(st.path){const [x,y]=st.path;drawPath(x,y)}
+  // 物件
+  for(const o of st.objs) sprite(ART[o.k],o.ax!=null?o.ax:toAX(o.x),(o.ay!=null?o.ay:toAY(o.y))+(o.bob||0));
+  // 選取框
+  if(st.hover){const [x,y]=st.hover;ring(x,y,'#fff8e8')}
+  if(st.mark){const [x,y,c]=st.mark;ring(x,y,c)}
+  // 農夫站在原點
+}
+function txt(s,x,y){const w=g.measureText(s).width/P+2;px(x-w/2,y-3,w,7,'rgba(255,248,232,.85)');g.fillStyle='#3a2a1e';g.fillText(s,x*P,y*P+P*.5)}
+function ring(x,y,c){const ax=toAX(x),ay=toAY(y);px(ax-6,ay-6,13,2,c);px(ax-6,ay+5,13,2,c);px(ax-6,ay-6,2,13,c);px(ax+5,ay-6,2,13,c)}
+function drawPath(x,y){
+  const c='#e8642f',ox=toAX(0),oy=toAY(0),tx=toAX(x),ty=toAY(y);
+  const dx=Math.sign(tx-ox);for(let i=ox;dx&&(dx>0?i<tx:i>tx);i+=dx*4)px(i,oy-1,2,3,c);
+  const dy=Math.sign(ty-oy);for(let j=oy;dy&&(dy>0?j<ty:j>ty);j+=dy*4)px(tx-1,j,3,2,c);
+  px(tx-2,ty-2,5,5,c);
+}
+
+/* ================= 音效 ================= */
+let ac=null,muted=false;
+function tone(f,d,type='square',v=.06,when=0){if(!ac||muted)return;const t=ac.currentTime+when,o=ac.createOscillator(),gn=ac.createGain();o.type=type;o.frequency.setValueAtTime(f,t);gn.gain.setValueAtTime(v,t);gn.gain.exponentialRampToValueAtTime(.001,t+d);o.connect(gn).connect(ac.destination);o.start(t);o.stop(t+d+.02)}
+const SFX={ok:()=>{tone(784,.08);tone(1047,.12,'square',.06,.08)},no:()=>{tone(220,.18,'triangle',.12);tone(165,.22,'triangle',.1,.12)},coin:()=>{tone(988,.06);tone(1319,.14,'square',.06,.06)},win:()=>[523,659,784,1047].forEach((f,i)=>tone(f,.16,'square',.07,i*.12)),tap:()=>tone(600,.04,'square',.04)};
+
+/* ================= 題目 ================= */
+const LV={
+ 1:{name:'第一關',range:[0,5],types:['read','plot']},
+ 2:{name:'第二關',range:[-5,5],types:['read','plot','read','plot']},
+ 3:{name:'第三關',range:[-5,5],types:['read','plot','quad','quad']}
+};
+let S=null;
+function randPoint(lv,allowAxis){
+  for(let k=0;k<200;k++){
+    let x,y;
+    if(lv===1){x=ri(0,5);y=ri(0,5);if(x===0&&y===0)continue;if((x===0||y===0)&&Math.random()<.7)continue}
+    else if(allowAxis&&Math.random()<.3){if(Math.random()<.5){x=ri(-5,5);y=0}else{x=0;y=ri(-5,5)}if(x===0&&y===0)continue}
+    else{x=ri(-5,5);y=ri(-5,5);if(x===0||y===0)continue}
+    if(S&&S.used.has(x+','+y))continue;
+    return [x,y];
+  }
+  return [ri(1,5),ri(1,5)];
+}
+function quadOf(x,y){if(x>0&&y>0)return'第一象限';if(x<0&&y>0)return'第二象限';if(x<0&&y<0)return'第三象限';if(x>0&&y<0)return'第四象限';return'在坐標軸上'}
+function walkText(x,y){
+  const h=x>0?`向右 ${x} 格`:x<0?`向左 ${-x} 格`:'左右不動';
+  const v=y>0?`向上 ${y} 格`:y<0?`向下 ${-y} 格`:'上下不動';
+  return `從原點 O 出發，先${h}，再${v}。`;
+}
+function makeQ(){
+  const L=LV[S.lv];const type=L.types[S.i%L.types.length];
+  const [x,y]=randPoint(S.lv,S.lv===3);S.used.add(x+','+y);
+  const an=pick(ANIMALS);
+  if(type==='read'){
+    const cand=[[y,x],[-x,y],[x,-y],[-x,-y],[x+1,y],[x,y+1],[x-1,y],[x,y-1]];
+    const lo=L.range[0],hi=L.range[1];const seen=new Set([x+','+y]);const opts=[];
+    for(const [a,b] of (x!==y?[cand[0]]:[]).concat(shuffle(cand.slice(1)))){if(a<lo||a>hi||b<lo||b>hi)continue;const k=a+','+b;if(seen.has(k))continue;seen.add(k);opts.push([a,b]);if(opts.length===3)break}
+    while(opts.length<3){const a=ri(lo,hi),b=ri(lo,hi),k=a+','+b;if(!seen.has(k)){seen.add(k);opts.push([a,b])}}
+    return {type,x,y,an,opts:shuffle([[x,y]].concat(opts))};
+  }
+  if(type==='plot')return {type,x,y,an};
+  return {type:'quad',x,y,an,opts:['第一象限','第二象限','第三象限','第四象限','在坐標軸上']};
+}
+
+/* ================= 流程 ================= */
+const view={objs:[]};
+const START=[206,183];   // 農夫身邊的等待位置
+function render(){drawMap({range:S?LV[S.lv].range:null,objs:view.objs,hover:view.hover,mark:view.mark,path:view.path})}
+function start(lv){
+  try{if(!ac)ac=new (window.AudioContext||window.webkitAudioContext)();if(ac.state==='suspended')ac.resume()}catch(e){}
+  S={lv,i:0,ok:0,no:0,coin:0,streak:0,used:new Set(),miss:[],walking:false};
+  $('startScreen').hidden=true;$('resultScreen').hidden=true;
+  nextQ();
+}
+function hud(){$('hQ').textContent=`${Math.min(S.i+1,10)}/10`;$('hOk').textContent=S.ok;$('hSt').textContent=S.streak;$('hCoin').textContent=S.coin}
+function nextQ(){
+  if(S.i>=10){finish();return}
+  S.q=makeQ();S.answered=false;
+  view.path=null;view.mark=null;view.hover=null;
+  const q=S.q;
+  $('fb').hidden=true;$('nextBtn').hidden=true;
+  const ops=$('opts');ops.innerHTML='';ops.className='opts';
+  $('mapWrap').classList.toggle('locked',q.type!=='plot');
+  if(q.type==='read'){
+    view.objs=[{k:q.an.k,x:q.x,y:q.y}];
+    $('qTag').textContent='讀座標';
+    $('qText').innerHTML=`${q.an.n}站在哪個點？選出牠的座標。`;
+    $('qHint').textContent='座標寫成 (x, y)：x 看左右，y 看上下。';
+    q.opts.forEach(([a,b])=>{const bt=document.createElement('button');bt.type='button';bt.className='opt';bt.innerHTML=CH(a,b);bt.dataset.v=a+','+b;bt.onclick=()=>answer(a===q.x&&b===q.y,bt);ops.appendChild(bt)});
+  }else if(q.type==='plot'){
+    view.objs=[{k:q.an.k,ax:START[0],ay:START[1]}];
+    $('qTag').textContent='描點';
+    $('qText').innerHTML=`把${q.an.n}帶到 ${CH(q.x,q.y)}！`;
+    $('qHint').textContent=`按住右下角農夫身邊的${q.an.n}，把牠拖到正確的交叉點再放開。`;
+  }else{
+    view.objs=[{k:q.an.k,x:q.x,y:q.y}];
+    $('qTag').textContent='判斷象限';
+    $('qText').innerHTML=`${q.an.n}在 ${CH(q.x,q.y)}，牠在哪裡？`;
+    $('qHint').textContent='第一象限在右上，接著逆時針轉：左上是第二、左下是第三、右下是第四。';
+    ops.className='opts five';
+    q.opts.forEach(s=>{const bt=document.createElement('button');bt.type='button';bt.className='opt';bt.textContent=s;bt.dataset.v=s;bt.onclick=()=>answer(s===quadOf(q.x,q.y),bt);ops.appendChild(bt)});
+  }
+  hud();render();
+}
+function answer(ok,btn,clicked){
+  if(S.answered)return;S.answered=true;
+  const q=S.q;
+  document.querySelectorAll('.opt').forEach(b=>{b.disabled=true;
+    const right=q.type==='quad'?b.dataset.v===quadOf(q.x,q.y):b.dataset.v===q.x+','+q.y;if(right)b.classList.add('ok')});
+  if(btn&&!ok)btn.classList.add('no');
+  $('mapWrap').classList.add('locked');view.hover=null;
+  const fb=$('fb');fb.hidden=false;
+  if(ok){
+    S.ok++;S.streak++;S.coin+=10;let extra='';
+    if(S.streak%3===0){S.coin+=10;extra='　連續答對 3 題，金幣 +10！';setTimeout(SFX.coin,250)}
+    SFX.ok();fb.className='fb good';
+    if(q.type==='plot')bounce();
+    view.path=[q.x,q.y];
+    fb.innerHTML=`<strong>答對了！</strong>${extra}<br>${q.type==='quad'?quadReason(q.x,q.y):walkText(q.x,q.y)}`;
+    setTimeout(()=>{S.i++;nextQ()},q.type==='quad'?2200:1900);
+  }else{
+    S.no++;S.streak=0;SFX.no();fb.className='fb bad';
+    view.path=[q.x,q.y];
+    let msg;
+    if(q.type==='plot'){view.mark=[clicked[0],clicked[1],'#d9533b'];const o=view.objs[0];setTimeout(()=>walk(o,toAX(q.x),toAY(q.y),700),700);msg=`你點的是 ${CH(clicked[0],clicked[1])}。${q.an.n}要去的是 ${CH(q.x,q.y)}：`}
+    else if(q.type==='read')msg=`${q.an.n}的座標是 ${CH(q.x,q.y)}：`;
+    else msg=`正確答案是<strong>${quadOf(q.x,q.y)}</strong>。`;
+    fb.innerHTML=`<strong>差一點！</strong>${msg}<br>${q.type==='quad'?quadReason(q.x,q.y):walkText(q.x,q.y)}`;
+    S.miss.push(q.type==='quad'?`${C(q.x,q.y)} → ${quadOf(q.x,q.y)}`:`${q.an.n}在 ${C(q.x,q.y)}：${walkText(q.x,q.y)}`);
+    $('nextBtn').hidden=false;$('nextBtn').focus({preventScroll:true});
+  }
+  hud();render();
+}
+function quadReason(x,y){
+  if(x===0&&y===0)return'原點不在任何象限。';
+  if(x===0)return'x 是 0，點在 y 軸上，不屬於任何象限。';
+  if(y===0)return'y 是 0，點在 x 軸上，不屬於任何象限。';
+  return `x 是${x>0?'正':'負'}、y 是${y>0?'正':'負'}，所以在${quadOf(x,y)}。`;
+}
+function bounce(){const o=view.objs[0];if(!o)return;let t=0;const id=setInterval(()=>{t++;o.bob=t%2?-2:0;render();if(t>5){clearInterval(id);o.bob=0;render()}},90)}
+$('nextBtn').onclick=()=>{SFX.tap();S.i++;nextQ()};
+
+/* 地圖點擊（描點題） */
+function artXY(e){const r=cv.getBoundingClientRect();return [(e.clientX-r.left)/r.width*224,(e.clientY-r.top)/r.height*224]}
+function toPoint(e,tol){
+  const [ax,ay]=Array.isArray(e)?e:artXY(e);
+  const x=Math.round(ax/CELL-7),y=Math.round(7-ay/CELL);
+  const L=S?LV[S.lv].range:[-5,5];
+  if(x<L[0]||x>L[1]||y<L[0]||y>L[1])return null;
+  if(Math.abs(ax-toAX(x))>(tol||9)||Math.abs(ay-toAY(y))>(tol||9))return null;
+  return [x,y];
+}
+const canPlay=()=>S&&!S.answered&&!S.walking&&S.q&&S.q.type==='plot';
+function onAnimal(a){const o=view.objs[0];if(!o)return false;const ox=o.ax!=null?o.ax:toAX(o.x),oy=o.ay!=null?o.ay:toAY(o.y);return Math.abs(a[0]-ox)<=11&&a[1]>=oy-11&&a[1]<=oy+9}
+let drag=null;
+cv.addEventListener('pointerdown',e=>{
+  if(!canPlay())return;const a=artXY(e);
+  if(onAnimal(a)){ // 抓起動物
+    e.preventDefault();drag={id:e.pointerId,dx:view.objs[0].ax-a[0],dy:view.objs[0].ay-a[1]};
+    try{cv.setPointerCapture(e.pointerId)}catch(_){}
+    cv.classList.add('dragging');SFX.tap();return;
+  }
+  const p=toPoint(a);if(!p)return;   // 也可以直接點交叉點
+  S.walking=true;view.hover=null;view.mark=[p[0],p[1],'#fff8e8'];SFX.tap();
+  walk(view.objs[0],toAX(p[0]),toAY(p[1]),750,()=>{S.walking=false;answer(p[0]===S.q.x&&p[1]===S.q.y,null,p)});
+});
+cv.addEventListener('pointermove',e=>{
+  if(drag&&e.pointerId===drag.id){
+    const a=artXY(e),o=view.objs[0];o.ax=Math.max(4,Math.min(220,a[0]+drag.dx));o.ay=Math.max(4,Math.min(220,a[1]+drag.dy));o.bob=-2;
+    view.hover=toPoint([o.ax,o.ay],10);render();return;
+  }
+  if(!canPlay()||e.pointerType==='touch')return;
+  const a=artXY(e);cv.classList.toggle('grab',onAnimal(a));
+  const p=onAnimal(a)?null:toPoint(a);const k=p&&p.join();if(k!==(view.hover&&view.hover.join())){view.hover=p;render()}
+});
+function endDrag(e){
+  if(!drag||e.pointerId!==drag.id)return;drag=null;cv.classList.remove('dragging');
+  const o=view.objs[0];o.bob=0;const p=toPoint([o.ax,o.ay],10);view.hover=null;
+  if(!p){S.walking=true;walk(o,START[0],START[1],500,()=>{S.walking=false;render()});return}   // 沒放在交叉點上，走回農夫身邊
+  S.walking=true;view.mark=[p[0],p[1],'#fff8e8'];
+  walk(o,toAX(p[0]),toAY(p[1]),150,()=>{S.walking=false;answer(p[0]===S.q.x&&p[1]===S.q.y,null,p)});
+}
+cv.addEventListener('pointerup',endDrag);cv.addEventListener('pointercancel',endDrag);
+cv.addEventListener('pointerleave',()=>{if(!drag&&view.hover){view.hover=null;render()}});
+/* 動物走路動畫：小跳步移動 */
+function walk(o,tx,ty,ms,cb){
+  const sx=o.ax!=null?o.ax:toAX(o.x),sy=o.ay!=null?o.ay:toAY(o.y);const t0=performance.now();
+  const dist=Math.hypot(tx-sx,ty-sy);ms=Math.max(350,Math.min(ms*1.4,ms*dist/90));
+  (function step(t){const k=Math.min(1,(t-t0)/ms),e=k<.5?2*k*k:1-Math.pow(-2*k+2,2)/2;
+    o.ax=sx+(tx-sx)*e;o.ay=sy+(ty-sy)*e;o.bob=k<1?-Math.round(Math.abs(Math.sin(k*Math.PI*6))*3):0;render();
+    if(k<1)requestAnimationFrame(step);else{o.ax=tx;o.ay=ty;o.bob=0;render();cb&&cb()}})(t0);
+}
+
+function finish(){
+  SFX.win();
+  $('rOk').textContent=S.ok;$('rNo').textContent=S.no;$('rCoin').textContent=S.coin;
+  $('rStars').textContent=S.ok>=9?'★★★':S.ok>=6?'★★☆':'★☆☆';
+  $('rTitle').textContent=S.ok>=9?'牧場大師！':S.ok>=6?'收工囉！做得好！':'收工囉！再練一次會更好';
+  const ul=$('rList');ul.innerHTML='';S.miss.forEach(m=>{const li=document.createElement('li');li.textContent=m;ul.appendChild(li)});
+  $('rMiss').hidden=!S.miss.length;$('resultScreen').hidden=false;
+}
+document.querySelectorAll('.lv').forEach(b=>b.addEventListener('click',()=>start(+b.dataset.lv)));
+$('againBtn').onclick=()=>start(S.lv);
+const toStart=()=>{$('resultScreen').hidden=true;$('startScreen').hidden=false};
+$('backBtn').onclick=toStart;$('homeBtn').onclick=toStart;
+$('muteBtn').onclick=()=>{muted=!muted;$('muteBtn').setAttribute('aria-pressed',muted);$('muteBtn').textContent=muted?'聲音：關':'聲音：開'};
+
+// 開始畫面背景：熱鬧的牧場
+view.objs=[{k:'chicken',x:2,y:3},{k:'cow',x:-3,y:2},{k:'sheep',x:-2,y:-3},{k:'pig',x:3,y:-2},{k:'carrot',x:4,y:4}];
+render();
+if(document.fonts&&document.fonts.ready)document.fonts.ready.then(render);
+})();
+</script>
+
+</body>
+</html>
