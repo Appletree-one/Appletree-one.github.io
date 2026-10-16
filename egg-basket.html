@@ -1,0 +1,393 @@
+<!doctype html>
+<html lang="zh-Hant">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>牧場蛋籃分配</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=DotGothic16&family=Noto+Sans+TC:wght@500;700;900&display=swap">
+<style>
+/* Layout: same pixel-farm world as 牧場座標探險. Left: the packing shed canvas (baskets, eggs, calendar). Right: wooden signboard panel with question and controls. Stacks on phones. */
+:root{
+  --grass:#8cc47a; --grass-d:#6fae63; --wood:#b07a4a; --wood-d:#7a4f2e; --wood-l:#d9a46b;
+  --paper:#fbf3df; --ink:#3a2a1e; --ink-soft:#7a6450; --ok:#3f9a4f; --bad:#d9533b; --gold:#f2b134;
+  --f-ui:"Noto Sans TC","PingFang TC","Microsoft JhengHei",sans-serif;
+  --f-px:"DotGothic16","Noto Sans TC",monospace;
+  color-scheme:light;
+}
+*{box-sizing:border-box}
+[hidden]{display:none!important}
+html,body{height:100%}
+body{margin:0;background:var(--grass-d);background-image:radial-gradient(rgba(255,255,255,.08) 2px,transparent 2px);background-size:16px 16px;color:var(--ink);font-family:var(--f-ui);-webkit-tap-highlight-color:transparent}
+button{font-family:inherit;color:inherit;cursor:pointer}
+button:focus-visible{outline:3px solid var(--gold);outline-offset:2px}
+.app{min-height:100%;display:grid;grid-template-columns:auto minmax(340px,1fr);gap:16px;align-items:start;margin:0 auto;
+  padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));
+  padding-block:calc(14px + env(safe-area-inset-top,0px)) calc(14px + env(safe-area-inset-bottom,0px))}
+.sceneWrap{width:min(calc((100vh - 40px) * 1.6),66vw);aspect-ratio:16/10;border:6px solid var(--wood-d);border-radius:6px;box-shadow:0 6px 0 rgba(0,0,0,.25);background:#d9b77f;position:sticky;top:14px}
+#scene{width:100%;height:100%;display:block;image-rendering:pixelated;touch-action:manipulation}
+.panel{display:flex;flex-direction:column;gap:12px;min-width:0}
+.sign{background:var(--wood);border:4px solid var(--wood-d);border-radius:6px;box-shadow:inset 0 4px 0 var(--wood-l),0 5px 0 rgba(0,0,0,.25);padding:12px 16px;color:#fff8e8;display:flex;align-items:baseline;justify-content:space-between;gap:10px;flex-wrap:wrap}
+.sign h1{margin:0;font-size:clamp(22px,2.6vw,32px);font-weight:900;letter-spacing:.06em;text-shadow:0 3px 0 var(--wood-d)}
+.sign span{font-weight:700;font-size:15px}
+.hud{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:8px}
+.hud div{background:var(--paper);border:3px solid var(--wood-d);border-radius:4px;padding:6px 8px;text-align:center}
+.hud small{display:block;font-size:13px;color:var(--ink-soft);font-weight:700}
+.hud b{font-family:var(--f-px);font-size:clamp(20px,2.1vw,26px);font-weight:400}
+.card{background:var(--paper);border:4px solid var(--wood-d);border-radius:6px;padding:14px 18px;box-shadow:0 5px 0 rgba(0,0,0,.2)}
+.qtag{display:inline-block;font-size:14px;font-weight:900;color:#fff;background:var(--wood-d);padding:2px 10px;border-radius:3px;margin-bottom:8px}
+.qtext{font-size:clamp(19px,2.1vw,26px);font-weight:900;line-height:1.5;margin:0}
+.num{font-family:var(--f-px);font-weight:400;color:#b4521f}
+.hint{font-size:15px;color:var(--ink-soft);margin:6px 0 0;font-weight:700;line-height:1.55}
+.ctrl{display:flex;flex-direction:column;gap:10px}
+.tiles{display:grid;grid-template-columns:repeat(6,minmax(0,1fr));gap:8px}
+.tile{aspect-ratio:1.2;border:3px solid var(--wood-d);border-radius:6px;background:#fff8e8;box-shadow:0 4px 0 var(--wood-d);font-family:var(--f-px);font-size:clamp(18px,2vw,26px)}
+.tile[aria-pressed="true"]{background:var(--gold);}
+.tiles.many{grid-template-columns:repeat(8,minmax(0,1fr))}
+.tiles.many .tile{aspect-ratio:1.1;font-size:clamp(16px,1.6vw,22px)}
+.tile.look{outline:3px dashed var(--wood-d);outline-offset:2px}
+.tile.ok{background:#bfe8b5;border-color:var(--ok);box-shadow:0 4px 0 var(--ok)}
+.tile.miss{background:#fff;border-color:var(--ok);border-style:dashed;box-shadow:0 4px 0 var(--ok);color:var(--ok)}
+.tile.no{background:#f9d9d2;border-color:var(--bad);box-shadow:0 4px 0 var(--bad)}
+.tile:active{transform:translateY(2px);box-shadow:0 2px 0 var(--wood-d)}
+.stepper{display:flex;align-items:center;justify-content:center;gap:14px;background:var(--paper);border:4px solid var(--wood-d);border-radius:6px;padding:10px}
+.stepper button{width:64px;height:64px;border:4px solid var(--wood-d);border-radius:8px;background:#fff8e8;box-shadow:0 4px 0 var(--wood-d);font-size:34px;font-weight:900;line-height:1}
+.stepper output{min-width:120px;text-align:center;font-family:var(--f-px);font-size:40px}
+.stepper output small{display:block;font-family:var(--f-ui);font-size:15px;font-weight:700;color:var(--ink-soft)}
+.btn{border:4px solid var(--wood-d);background:var(--gold);box-shadow:0 5px 0 var(--wood-d);border-radius:6px;padding:12px 20px;font-size:21px;font-weight:900}
+.btn:active{transform:translateY(3px);box-shadow:0 2px 0 var(--wood-d)}
+.btn.truck{position:relative;margin:0 50px 20px 0;box-shadow:none;border-radius:6px 2px 2px 6px;background:var(--gold)}
+.btn.truck::after{content:'';position:absolute;right:-50px;bottom:-4px;width:46px;height:74%;border:4px solid var(--wood-d);border-left:none;border-radius:4px 14px 4px 0;background:linear-gradient(#bfe3f5,#bfe3f5) 8px 7px/24px 14px no-repeat,#d9533b}
+.btn.truck::before{content:'';position:absolute;left:10px;right:-38px;bottom:-22px;height:22px;pointer-events:none;
+  background:radial-gradient(circle,#ddd 0 3px,#3a3a3a 3px 8px,var(--wood-d) 8px 10px,transparent 10.5px) 0 0/22px 22px no-repeat,
+  radial-gradient(circle,#ddd 0 3px,#3a3a3a 3px 8px,var(--wood-d) 8px 10px,transparent 10.5px) 100% 0/22px 22px no-repeat}
+.btn.truck:active{transform:translateX(6px)}
+.row .btn.truck{flex:2;white-space:nowrap;padding-inline:12px}
+.btn.ghost{background:#fff8e8}
+.btn[disabled]{opacity:.5;cursor:default}
+.row{display:flex;gap:10px;flex-wrap:wrap}
+.row .btn{flex:1;min-width:140px}
+.fb{border-radius:6px;padding:12px 16px;font-weight:700;font-size:clamp(15px,1.6vw,19px);line-height:1.65;border:3px solid}
+.fb.good{background:#e3f5dc;border-color:var(--ok);color:#245c2f}
+.fb.bad{background:#fbe5df;border-color:var(--bad);color:#7d2a1a}
+.fb.info{background:#fff4d6;border-color:var(--gold);color:#6b4a12}
+.tools{display:flex;gap:8px;justify-content:flex-end}
+.tbtn{border:3px solid var(--wood-d);background:var(--paper);border-radius:4px;padding:4px 12px;font-weight:700;font-size:14px}
+
+.screen{position:fixed;inset:0;z-index:20;overflow-y:auto;display:flex;align-items:center;justify-content:center;background:rgba(58,42,30,.55);
+  padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));padding-block:calc(16px + env(safe-area-inset-top,0px)) calc(16px + env(safe-area-inset-bottom,0px))}
+.board{width:min(900px,100%);background:var(--paper);border:6px solid var(--wood-d);border-radius:8px;box-shadow:0 8px 0 rgba(0,0,0,.3);padding:22px clamp(16px,3vw,32px);display:flex;flex-direction:column;gap:16px}
+.board h2{margin:0;text-align:center;font-size:clamp(32px,5vw,56px);font-weight:900;color:var(--wood-d);letter-spacing:.08em;text-shadow:0 4px 0 #e8c79a}
+.board .sub{margin:0;text-align:center;color:var(--ink-soft);font-weight:700;font-size:17px}
+.levels{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px}
+.lv{border:4px solid var(--wood-d);border-radius:8px;background:#fff8e8;box-shadow:0 6px 0 var(--wood-d);padding:14px 12px;text-align:left;display:flex;flex-direction:column;gap:6px}
+.lv:active{transform:translateY(3px);box-shadow:0 3px 0 var(--wood-d)}
+.lv strong{font-size:22px;font-weight:900}
+.lv em{font-style:normal;font-size:14px;font-weight:900;color:#fff;background:var(--wood-d);align-self:flex-start;padding:1px 8px;border-radius:3px}
+.lv span{font-size:15px;color:var(--ink-soft);line-height:1.5}
+.stars{text-align:center;font-size:48px;color:var(--gold);letter-spacing:8px;text-shadow:0 3px 0 var(--wood-d)}
+.rgrid{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;text-align:center}
+.rgrid div{background:#fff;border:3px solid #e2cfa9;border-radius:6px;padding:10px}
+.rgrid small{display:block;color:var(--ink-soft);font-weight:700}
+.rgrid b{font-family:var(--f-px);font-size:32px;font-weight:400}
+.miss h3{margin:0 0 6px;font-size:17px;color:var(--ink-soft)}
+.miss ul{margin:0;padding:0;list-style:none;display:flex;flex-direction:column;gap:6px}
+.miss li{background:#fbe5df;border-left:5px solid var(--bad);border-radius:4px;padding:8px 12px;font-weight:700;line-height:1.5}
+.center{display:flex;gap:10px;justify-content:center;flex-wrap:wrap}
+
+@media (max-width:900px){
+  .app{grid-template-columns:1fr}
+  .panel{display:contents}
+  .sign{order:1}.hud{order:2}.card{order:3}.sceneWrap{order:4;position:static;width:100%}.ctrl{order:5}.fb{order:6}.tools{order:7}
+  .levels{grid-template-columns:1fr}
+  .tiles{grid-template-columns:repeat(6,minmax(0,1fr))}
+}
+@media (prefers-reduced-motion:reduce){*{transition:none!important;animation:none!important}}
+</style>
+</head>
+<body>
+
+
+<div class="app">
+  <div class="sceneWrap"><canvas id="scene" width="960" height="600" aria-label="蛋籃分配畫面"></canvas></div>
+  <div class="panel">
+    <div class="sign"><h1>牧場蛋籃分配</h1><span id="lvName">第一關</span></div>
+    <div class="hud">
+      <div><small>題目</small><b id="hQ">1/8</b></div>
+      <div><small>答對</small><b id="hOk">0</b></div>
+      <div><small>連續答對</small><b id="hSt">0</b></div>
+      <div><small>金幣</small><b id="hCoin">0</b></div>
+    </div>
+    <div class="card">
+      <span class="qtag" id="qTag">平均分蛋</span>
+      <p class="qtext" id="qText"></p>
+      <p class="hint" id="qHint"></p>
+    </div>
+    <div class="ctrl" id="ctrl"></div>
+    <div class="fb" id="fb" hidden></div>
+    <div class="tools"><button class="tbtn" id="muteBtn" type="button" aria-pressed="false">聲音：開</button><button class="tbtn" id="homeBtn" type="button">換關卡</button></div>
+  </div>
+</div>
+
+<div class="screen" id="startScreen">
+  <div class="board">
+    <h2>牧場蛋籃分配</h2>
+    <p class="sub">國中數學 · 因數與倍數　幫農場把雞蛋和蘋果裝進籃子出貨！</p>
+    <div class="levels">
+      <button class="lv" type="button" data-lv="1"><em>因數</em><strong>第一關　平均分蛋</strong><span>雞蛋要平均放進籃子，一顆都不能剩。找出所有可以分完的籃子數。</span></button>
+      <button class="lv" type="button" data-lv="2"><em>最大公因數</em><strong>第二關　禮物籃</strong><span>雞蛋和蘋果要裝成一樣的禮物籃，都不能剩。點數字試著分分看，找出最多可以裝幾籃。</span></button>
+      <button class="lv" type="button" data-lv="3"><em>最小公倍數</em><strong>第三關　同一天收成</strong><span>小雞和乳牛各有收成的週期。今天一起收成，最快第幾天又會同一天？</span></button>
+    </div>
+    <p class="sub">每關 8 題。每次選擇，畫面都會把蛋分給你看。</p>
+  </div>
+</div>
+
+<div class="screen" id="resultScreen" hidden>
+  <div class="board">
+    <h2 id="rTitle">出貨完成！</h2>
+    <div class="stars" id="rStars">★★★</div>
+    <div class="rgrid">
+      <div><small>答對題數</small><b id="rOk">0</b></div>
+      <div><small>答錯題數</small><b id="rNo">0</b></div>
+      <div><small>金幣</small><b id="rCoin">0</b></div>
+    </div>
+    <div class="miss" id="rMiss" hidden><h3>再看一次答錯的題目</h3><ul id="rList"></ul></div>
+    <div class="center"><button class="btn" id="againBtn" type="button">再玩一次</button><button class="btn ghost" id="backBtn" type="button">換關卡</button></div>
+  </div>
+</div>
+
+<script>
+(function(){
+"use strict";
+const $=id=>document.getElementById(id);
+const ri=(a,b)=>a+Math.floor(Math.random()*(b-a+1));
+const pick=a=>a[Math.floor(Math.random()*a.length)];
+const shuffle=a=>{a=a.slice();for(let i=a.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[a[i],a[j]]=[a[j],a[i]]}return a};
+const gcd=(a,b)=>b?gcd(b,a%b):a, lcm=(a,b)=>a/gcd(a,b)*b;
+const divisors=n=>{const d=[];for(let i=1;i<=n;i++)if(n%i===0)d.push(i);return d};
+const NUM=n=>`<span class="num">${n}</span>`;
+const TOTAL=8;
+
+/* ================= 像素繪圖 ================= */
+const cv=$('scene'),g=cv.getContext('2d');g.imageSmoothingEnabled=false;
+const P=3, W=320, H=200, OUT='#3a2a1e';
+const px=(x,y,w,h,c)=>{g.fillStyle=c;g.fillRect(Math.round(x)*P,Math.round(y)*P,Math.round(w)*P,Math.round(h)*P)};
+function sprite(parts,cx,cy){for(const p of parts)if(p[5]!==false)px(cx+p[0]-1,cy+p[1]-1,p[2]+2,p[3]+2,OUT);for(const p of parts)px(cx+p[0],cy+p[1],p[2],p[3],p[4])}
+function text(s,x,y,size,color,align){g.font=`900 ${size*P}px "Noto Sans TC","DotGothic16",sans-serif`;g.textAlign=align||'center';g.textBaseline='middle';g.lineWidth=P*1.4;g.strokeStyle='#fff8e8';g.strokeText(s,x*P,y*P);g.fillStyle=color||OUT;g.fillText(s,x*P,y*P)}
+let seed=11;const rnd=()=>(seed=(seed*16807)%2147483647)/2147483647;
+const specks=[];for(let i=0;i<90;i++)specks.push([Math.floor(rnd()*W),28+Math.floor(rnd()*(H-28)),rnd()]);
+const CHICK=[[-4,-2,8,6,'#f7f3ea'],[1,-7,5,5,'#f7f3ea'],[2,-9,3,2,'#d9533b'],[6,-5,2,1,'#f2a33a',false],[4,-6,1,1,OUT,false],[-6,-4,2,3,'#f7f3ea'],[-2,4,1,2,'#f2a33a',false],[1,4,1,2,'#f2a33a',false]];
+const COW=[[-7,-3,12,7,'#f7f3ea'],[-5,-2,3,3,OUT,false],[0,1,3,2,OUT,false],[4,-7,6,6,'#f7f3ea'],[5,-3,5,2,'#f0a3a3',false],[7,-6,1,1,OUT,false],[3,-8,2,2,'#5c3a26'],[9,-8,2,2,'#5c3a26'],[-6,4,2,3,'#f7f3ea'],[-2,4,2,3,'#f7f3ea'],[2,4,2,3,'#f7f3ea']];
+
+function background(){
+  px(0,0,W,28,'#8cc47a');
+  for(let i=0;i<W;i+=9){px(i,10,2,14,'#7a4f2e')}px(0,13,W,2,'#b07a4a');px(0,19,W,2,'#b07a4a');
+  sprite([[-1,4,3,5,'#7a4f2e'],[-6,-6,13,10,'#3c8148'],[-4,-9,9,4,'#4f9a5a',false]],16,10);
+  sprite([[-1,4,3,5,'#7a4f2e'],[-6,-6,13,10,'#3c8148'],[-4,-9,9,4,'#4f9a5a',false]],304,10);
+  px(0,28,W,H-28,'#d9b77f');px(0,28,W,2,'#b8935a');
+  for(const [x,y,r] of specks){if(r<.6)px(x,y,2,1,'#cba66c');else px(x,y,1,1,'#e6c99a')}
+}
+function egg(x,y,big){if(big){px(x+1,y,3,1,OUT);px(x,y+1,5,4,OUT);px(x+1,y+5,3,1,OUT);px(x+1,y+1,3,4,'#fff7e6');px(x+2,y+1,1,1,'#fff')}else{px(x,y,4,5,OUT);px(x+1,y+1,2,3,'#fff4dc')}}
+function apple(x,y){px(x,y+1,5,4,OUT);px(x+1,y,3,1,OUT);px(x+1,y+1,3,3,'#d9533b');px(x+1,y+1,1,1,'#f08a73');px(x+2,y-1,1,1,'#3c8148')}
+function basket(x,y,w,h){
+  px(x-1,y-1,w+2,h+2,OUT);px(x,y,w,h,'#b07a4a');
+  for(let i=x+2;i<x+w-1;i+=4)px(i,y+3,2,h-4,'#9a6538');
+  px(x,y,w,3,'#7a4f2e');px(x-2,y-1,w+4,2,'#5c3a26');
+}
+/* 籃子排版 */
+function layout(k,area){
+  const cols=Math.min(k,Math.max(1,Math.round(Math.sqrt(k*area.w/area.h*0.75)))),rows=Math.ceil(k/cols);
+  const cw=area.w/cols,ch=area.h/rows;const bw=Math.min(cw-6,64),bh=Math.max(10,Math.min(ch-14,34,bw*.62));
+  const out=[];for(let i=0;i<k;i++){const c=i%cols,r=Math.floor(i/cols);out.push({x:area.x+c*cw+(cw-bw)/2,y:area.y+r*ch+(ch-bh)/2+5,w:bw,h:bh})}return out;
+}
+function fill(b,items){ // items: ['e','e','a',...]
+  const cols=Math.max(1,Math.floor((b.w-4)/6)),rows=Math.max(1,Math.floor((b.h-5)/6)),cap=cols*rows;
+  items.slice(0,cap).forEach((t,i)=>{const c=i%cols,r=Math.floor(i/cols);const x=b.x+3+c*6,y=b.y+b.h-8-r*6;t==='a'?apple(x,y):egg(x,y)});
+}
+function pile(n,x,y,maxW,kind){ // 散放的蛋（剩下或未分）
+  const per=Math.floor(maxW/6);for(let i=0;i<n;i++){const c=i%per,r=Math.floor(i/per);const xx=x+c*6,yy=y-r*6;kind==='a'?apple(xx,yy):egg(xx,yy)}
+}
+
+function drawShare(q,k){
+  background();
+  const A={x:10,y:32,w:300,h:128};
+  sprite(CHICK,296,186);
+  if(!k){ // 還沒分：一大箱
+    const crateW=Math.min(200,12+Math.ceil(q.a/4)*6);const cx=160-crateW/2;
+    basket(cx,82,crateW,40);
+    const items=Array(q.a).fill('e').concat(Array(q.b||0).fill('a'));fill({x:cx,y:82,w:crateW,h:40},shuffleSeeded(items));
+    text(q.b?`雞蛋 ${q.a} 顆、蘋果 ${q.b} 顆`:`雞蛋 ${q.a} 顆`,160,66,9);
+    text('選好籃子數，看看能不能剛好分完',160,150,7,'#7a4f2e');
+    return;
+  }
+  const eq=Math.floor(q.a/k),er=q.a%k,aq=q.b?Math.floor(q.b/k):0,ar=q.b?q.b%k:0;
+  const bs=layout(k,A);const small=bs[0].w<26;
+  bs.forEach(b=>{basket(b.x,b.y,b.w,b.h);
+    const items=[];for(let i=0;i<eq;i++)items.push('e');for(let i=0;i<aq;i++)items.push('a');fill(b,items);
+    const lbl=q.b?(small?`${eq}·${aq}`:`蛋${eq} 果${aq}`):(small?`${eq}`:`${eq} 顆`);
+    text(lbl,b.x+b.w/2,b.y-5,small?5:6.5);
+  });
+  // 剩下的
+  const left=er+ar;
+  if(left){
+    px(8,166,206,30,'rgba(217,83,59,.18)');
+    pile(Math.min(er,26),14,186,120);if(ar)pile(Math.min(ar,10),14+Math.min(er,20)*6+4,186,60,'a');
+    text(q.b?`剩下：蛋 ${er}、蘋果 ${ar}`:`剩下 ${er} 顆`,208,180,7.5,'#b5361f','right');
+  }else{
+    text(q.b?`剛好分完！每籃 蛋${eq}、果${aq}`:`剛好分完！每籃 ${eq} 顆`,160,182,8,'#2f7a3b');
+  }
+}
+function shuffleSeeded(a){let s=7;const r=()=>(s=(s*9301+49297)%233280)/233280;a=a.slice();for(let i=a.length-1;i>0;i--){const j=Math.floor(r()*(i+1));[a[i],a[j]]=[a[j],a[i]]}return a}
+
+/* 第三關：月曆 */const CAL={cols:8,rows:6,x:8,y:31,w:304,h:166};
+function drawCalendar(q,st){
+  background();
+  const cw=CAL.w/CAL.cols,ch=CAL.h/CAL.rows;
+  for(let d=1;d<=CAL.cols*CAL.rows;d++){
+    const i=d-1,c=i%CAL.cols,r=Math.floor(i/CAL.cols);const x=CAL.x+c*cw,y=CAL.y+r*ch;
+    let bg='#fff8e8';
+    if(st.result&&d===q.L)bg='#bfe8b5';else if(st.result&&d===st.sel)bg='#f9d9d2';else if(d===st.sel)bg='#ffe08a';
+    px(x+1,y+1,cw-2,ch-2,OUT);px(x+2,y+2,cw-4,ch-4,bg);
+    g.font=`${7*P}px "DotGothic16",monospace`;g.textAlign='left';g.textBaseline='top';g.fillStyle=OUT;g.fillText(String(d),(x+4)*P,(y+3)*P);
+    const showA=(st.hint||st.result)&&d%q.a===0,showB=(st.hint||st.result)&&d%q.b===0;
+    if(showA){sprite([[-3,-1,6,4,'#f7f3ea'],[0,-4,4,4,'#f7f3ea'],[1,-5,2,1,'#d9533b',false],[4,-3,1,1,'#f2a33a',false]],x+cw-17,y+ch-6)}
+    if(showB){px(x+cw-8,y+ch-13,5,9,OUT);px(x+cw-7,y+ch-12,3,7,'#fff');px(x+cw-7,y+ch-15,3,3,OUT);px(x+cw-7,y+ch-9,3,2,'#6fb6e8')}
+  }
+}
+
+/* ================= 音效 ================= */
+let ac=null,muted=false;
+function tone(f,d,type='square',v=.06,when=0){if(!ac||muted)return;const t=ac.currentTime+when,o=ac.createOscillator(),gn=ac.createGain();o.type=type;o.frequency.setValueAtTime(f,t);gn.gain.setValueAtTime(v,t);gn.gain.exponentialRampToValueAtTime(.001,t+d);o.connect(gn).connect(ac.destination);o.start(t);o.stop(t+d+.02)}
+const SFX={ok:()=>{tone(784,.08);tone(1047,.12,'square',.06,.08)},no:()=>{tone(220,.18,'triangle',.12);tone(165,.22,'triangle',.1,.12)},coin:()=>{tone(988,.06);tone(1319,.14,'square',.06,.06)},win:()=>[523,659,784,1047].forEach((f,i)=>tone(f,.16,'square',.07,i*.12)),tap:()=>tone(600,.04,'square',.04),pop:()=>tone(880,.03,'square',.03)};
+
+/* ================= 題目 ================= */
+const POOL1=[6,8,9,10,12,14,15,16,18,20,21,24];
+function makeQ(lv,used){
+  for(let k=0;k<100;k++){
+    let q;
+    if(lv===1){const n=pick(POOL1);q={a:n,key:'n'+n}}
+    else if(lv===2){const gg=ri(2,9),m=ri(2,6),n=ri(2,6);if(m===n||gcd(m,n)!==1)continue;const a=gg*m,b=gg*n;if(a>40||b>40)continue;q={a,b,G:gg,key:a+','+b}}
+    else{const a=ri(2,12),b=ri(2,12);if(a===b)continue;const L=lcm(a,b);if(L>48||L<6)continue;if(Math.max(a,b)%Math.min(a,b)===0&&Math.random()<.6)continue;q={a,b,L,key:'l'+Math.min(a,b)+','+Math.max(a,b)}}
+    if(used.has(q.key))continue;used.add(q.key);return q;
+  }
+}
+
+/* ================= 流程 ================= */
+let S=null;
+const LVN={1:'第一關　平均分蛋',2:'第二關　禮物籃',3:'第三關　同一天收成'};
+function start(lv){
+  try{if(!ac)ac=new (window.AudioContext||window.webkitAudioContext)();if(ac.state==='suspended')ac.resume()}catch(e){}
+  S={lv,i:0,ok:0,no:0,coin:0,streak:0,used:new Set(),miss:[]};
+  $('lvName').textContent=LVN[lv];$('startScreen').hidden=true;$('resultScreen').hidden=true;nextQ();
+}
+function hud(){$('hQ').textContent=`${Math.min(S.i+1,TOTAL)}/${TOTAL}`;$('hOk').textContent=S.ok;$('hSt').textContent=S.streak;$('hCoin').textContent=S.coin}
+function nextQ(){
+  if(S.i>=TOTAL){finish();return}
+  const q=S.q=makeQ(S.lv,S.used);S.done=false;S.k=0;S.sel=new Set();S.cal={hint:false,sel:0,result:false};
+  $('fb').hidden=true;const C=$('ctrl');C.innerHTML='';
+  if(S.lv===1){
+    $('qTag').textContent='平均分蛋 · 因數';
+    $('qText').innerHTML=`今天收了 ${NUM(q.a)} 顆雞蛋，要平均放進籃子裡，<br>每籃一樣多、一顆都不能剩。<br>可以分成幾籃？選出<strong>所有</strong>答案。`;
+    $('qHint').textContent='點數字會把蛋分給你看；再點一次可以取消。全部選好再按「出貨」。';
+    const t=document.createElement('div');t.className='tiles';
+    for(let n=1;n<=q.a;n++){const b=document.createElement('button');b.type='button';b.className='tile';b.textContent=n;b.setAttribute('aria-pressed','false');
+      b.onclick=()=>{if(S.done){S.k=n;mark(b);draw();return}SFX.pop();const on=!S.sel.has(n);on?S.sel.add(n):S.sel.delete(n);b.setAttribute('aria-pressed',on);S.k=n;mark(b);draw()};t.appendChild(b)}
+    C.appendChild(t);
+    const r=document.createElement('div');r.className='row';r.innerHTML='<button class="btn ghost" type="button" id="clrBtn">全部清除</button><button class="btn" type="button" id="goBtn">出貨！</button>';C.appendChild(r);
+    $('clrBtn').onclick=()=>{if(S.done)return;S.sel.clear();S.k=0;C.querySelectorAll('.tile').forEach(x=>{x.setAttribute('aria-pressed','false');x.classList.remove('look')});draw()};
+    $('goBtn').onclick=judge1;
+  }else if(S.lv===2){
+    $('qTag').textContent='禮物籃 · 最大公因數';
+    $('qText').innerHTML=`有 ${NUM(q.a)} 顆雞蛋和 ${NUM(q.b)} 顆蘋果，要裝成<strong>一模一樣</strong>的禮物籃，蛋和蘋果都不能剩。<br>最多可以裝幾籃？`;
+    $('qHint').textContent='點數字會把蛋和蘋果分給你看，可以多試幾個。決定好最多幾籃，再按「就裝這麼多籃」。';
+    const max=Math.min(q.a,q.b);
+    const t=document.createElement('div');t.className='tiles'+(max>24?' many':'');
+    for(let n=1;n<=max;n++){const b=document.createElement('button');b.type='button';b.className='tile';b.textContent=n;b.setAttribute('aria-pressed','false');
+      b.onclick=()=>{S.k=n;mark(b);if(!S.done){SFX.pop();t.querySelectorAll('.tile').forEach(x=>x.setAttribute('aria-pressed',x===b?'true':'false'));S.pick=n;$('goBtn').disabled=false;$('goBtn').textContent=`就裝 ${n} 籃！`}draw()};t.appendChild(b)}
+    C.appendChild(t);
+    const r=document.createElement('div');r.className='row';r.innerHTML='<button class="btn" type="button" id="goBtn" disabled>先點一個籃子數</button>';C.appendChild(r);
+    S.k=0;S.pick=0;
+    $('goBtn').onclick=judge2;
+  }else{
+    $('qTag').textContent='同一天收成 · 最小公倍數';
+    $('qText').innerHTML=`小雞每 ${NUM(q.a)} 天收一次蛋，乳牛每 ${NUM(q.b)} 天擠一次牛奶。<br>今天（第 0 天）兩個一起收成，<br>最快第幾天又會在同一天？`;
+    $('qHint').textContent='在月曆上點那一天。想不出來可以按「顯示提示」，看看兩邊的倍數。';
+    const r=document.createElement('div');r.className='row';r.innerHTML='<button class="btn ghost" type="button" id="hintBtn">顯示提示</button><button class="btn truck" type="button" id="goBtn" disabled>選一天</button>';C.appendChild(r);
+    $('hintBtn').onclick=()=>{if(S.done)return;S.cal.hint=!S.cal.hint;S.usedHint=true;$('hintBtn').textContent=S.cal.hint?'隱藏提示':'顯示提示';SFX.tap();draw()};
+    $('goBtn').onclick=judge3;S.usedHint=false;
+  }
+  hud();draw();
+}
+function mark(b){$('ctrl').querySelectorAll('.tile').forEach(x=>x.classList.toggle('look',x===b))}
+function draw(){if(!S||!S.q)return;if(S.lv===3)drawCalendar(S.q,S.cal);else drawShare(S.q,S.k)}
+
+function reward(extraMsg){
+  S.ok++;S.streak++;S.coin+=10;let extra='';if(S.streak%3===0){S.coin+=10;extra='　連續答對 3 題，金幣 +10！';setTimeout(SFX.coin,250)}SFX.ok();return extra;
+}
+function fail(missText){S.no++;S.streak=0;SFX.no();S.miss.push(missText)}
+function showFb(kind,html){const f=$('fb');f.className='fb '+kind;f.innerHTML=html;f.hidden=false}
+function nextButton(){const C=$('ctrl');const r=C.querySelector('.row');r.innerHTML='<button class="btn" type="button" id="nextBtn">下一題 ▶</button>';$('nextBtn').onclick=()=>{SFX.tap();S.i++;nextQ()};$('nextBtn').focus({preventScroll:true})}
+
+function judge1(){
+  if(S.done)return;const q=S.q,ds=divisors(q.a);
+  if(!S.sel.size){showFb('info','先點選籃子數，再按「出貨」。');return}
+  S.done=true;
+  const ok=ds.length===S.sel.size&&ds.every(d=>S.sel.has(d));
+  $('ctrl').querySelectorAll('.tile').forEach(b=>{const n=+b.textContent,isD=q.a%n===0,picked=S.sel.has(n);
+    if(isD&&picked)b.classList.add('ok');else if(isD)b.classList.add('miss');else if(picked)b.classList.add('no')});
+  const pairs=[];for(const d of ds){if(d>q.a/d)break;pairs.push(`${d}×${q.a/d}`)}
+  const why=`${q.a} 的因數有：${ds.join('、')}。<br>成對來看：${pairs.join('、')}，用這些籃子數都能剛好分完。`;
+  if(ok){const e=reward();showFb('good',`<strong>全部找到了！</strong>${e}<br>${why}`)}
+  else{const miss=ds.filter(d=>!S.sel.has(d)),wrong=[...S.sel].filter(d=>q.a%d);
+    let m='';if(miss.length)m+=`漏掉了 ${miss.join('、')}（虛線框）。`;if(wrong.length)m+=`${wrong.join('、')} 不行，分完會有剩（紅色框）。`;
+    fail(`${q.a} 顆蛋：因數是 ${ds.join('、')}`);showFb('bad',`<strong>差一點！</strong>${m}<br>${why}<br>點任何數字都能再看一次怎麼分。`)}
+  S.k=0;draw();nextButton();hud();
+}
+function judge2(){
+  if(S.done||!S.pick)return;const q=S.q,k=S.pick;S.done=true;
+  const cds=divisors(q.G);
+  $('ctrl').querySelectorAll('.tile').forEach(b=>{const n=+b.textContent,isC=q.a%n===0&&q.b%n===0;
+    if(n===q.G)b.classList.add('ok');else if(isC)b.classList.add('miss');else if(n===k)b.classList.add('no')});
+  const why=`${q.a} 和 ${q.b} 的公因數有 ${cds.join('、')}（虛線框），最大公因數是 ${q.G}。<br>所以最多裝 ${q.G} 籃，每籃 ${q.a/q.G} 顆蛋、${q.b/q.G} 顆蘋果。`;
+  if(k===q.G){const e=reward();showFb('good',`<strong>答對了！</strong>${e}<br>${why}`)}
+  else if(q.a%k===0&&q.b%k===0){fail(`蛋 ${q.a}、蘋果 ${q.b}：最多 ${q.G} 籃`);showFb('bad',`<strong>可以分完，但還能裝更多籃喔！</strong>${k} 是公因數，不是<strong>最大</strong>的。<br>${why}`)}
+  else{fail(`蛋 ${q.a}、蘋果 ${q.b}：最多 ${q.G} 籃`);showFb('bad',`<strong>分不完！</strong>${k} 籃會有剩下的。<br>${why}`)}
+  S.k=q.G;mark($('ctrl').querySelectorAll('.tile')[q.G-1]);
+  draw();nextButton();hud();
+}
+cv.addEventListener('pointerdown',e=>{
+  if(!S||S.lv!==3||S.done)return;const r=cv.getBoundingClientRect();const ax=(e.clientX-r.left)/r.width*W,ay=(e.clientY-r.top)/r.height*H;
+  const c=Math.floor((ax-CAL.x)/(CAL.w/CAL.cols)),rr=Math.floor((ay-CAL.y)/(CAL.h/CAL.rows));if(c<0||c>=CAL.cols||rr<0||rr>=CAL.rows)return;
+  S.cal.sel=rr*CAL.cols+c+1;SFX.pop();$('goBtn').disabled=false;$('goBtn').textContent=`就是第 ${S.cal.sel} 天！`;draw();
+});
+function judge3(){
+  if(S.done||!S.cal.sel)return;const q=S.q,d=S.cal.sel;S.done=true;S.cal.result=true;
+  const ma=[],mb=[];for(let i=1;i*q.a<=q.L;i++)ma.push(i*q.a);for(let i=1;i*q.b<=q.L;i++)mb.push(i*q.b);
+  const why=`${q.a} 的倍數：${ma.join('、')}<br>${q.b} 的倍數：${mb.join('、')}<br>第一個一樣的是 ${q.L}，也就是 ${q.a} 和 ${q.b} 的最小公倍數。`;
+  if(d===q.L){const e=reward();showFb('good',`<strong>答對了！第 ${q.L} 天！</strong>${e}<br>${why}`)}
+  else if(d%q.a===0&&d%q.b===0){fail(`每 ${q.a} 天和每 ${q.b} 天：第 ${q.L} 天`);showFb('bad',`<strong>那天確實會一起收成，但不是最快的！</strong><br>${why}`)}
+  else{fail(`每 ${q.a} 天和每 ${q.b} 天：第 ${q.L} 天`);showFb('bad',`<strong>第 ${d} 天不會同時收成。</strong>月曆上已經標出小雞和牛奶的日子。<br>${why}`)}
+  draw();nextButton();hud();
+}
+function finish(){
+  SFX.win();$('rOk').textContent=S.ok;$('rNo').textContent=S.no;$('rCoin').textContent=S.coin;
+  $('rStars').textContent=S.ok>=7?'★★★':S.ok>=5?'★★☆':'★☆☆';
+  $('rTitle').textContent=S.ok>=7?'出貨大師！':S.ok>=5?'出貨完成！做得好！':'出貨完成！再練一次會更好';
+  const ul=$('rList');ul.innerHTML='';S.miss.forEach(m=>{const li=document.createElement('li');li.textContent=m;ul.appendChild(li)});
+  $('rMiss').hidden=!S.miss.length;$('resultScreen').hidden=false;
+}
+document.querySelectorAll('.lv').forEach(b=>b.addEventListener('click',()=>start(+b.dataset.lv)));
+$('againBtn').onclick=()=>start(S.lv);
+const toStart=()=>{$('resultScreen').hidden=true;$('startScreen').hidden=false};
+$('backBtn').onclick=toStart;$('homeBtn').onclick=toStart;
+$('muteBtn').onclick=()=>{muted=!muted;$('muteBtn').setAttribute('aria-pressed',muted);$('muteBtn').textContent=muted?'聲音：關':'聲音：開'};
+
+// 開始畫面背景
+drawShare({a:12,b:8},4);
+if(document.fonts&&document.fonts.ready)document.fonts.ready.then(()=>{if(S&&S.q)draw();else drawShare({a:12,b:8},4)});
+})();
+</script>
+
+</body>
+</html>
