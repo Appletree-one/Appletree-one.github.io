@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>蘋果樹教室</title>
-<meta name="description" content="國中數學小遊戲，打開就能玩。">
+<meta name="description" content="國中小學習小遊戲，打開就能玩。">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=LXGW+WenKai+TC:wght@400;700&display=swap">
 <style>
@@ -111,6 +111,11 @@ footer{grid-column:1/-1;text-align:center;font-size:13px;color:var(--ink-soft);p
       <ul class="notes">
         <li>
           <time datetime="2026-10-16">2026 / 10 / 16</time>
+          <b>新遊戲：標點符號大冒險</b>
+          <p>騎士和法師一起打怪獸！可以兩人對戰，也可以一個人挑戰，適合在電子白板上玩。</p>
+        </li>
+        <li>
+          <time datetime="2026-10-16">2026 / 10 / 16</time>
           <b>新遊戲：樂樂同類項跑酷</b>
           <p>幫積木人樂樂吃對的金幣，練習分辨常數項、一次項、二次項。</p>
         </li>
@@ -122,12 +127,12 @@ footer{grid-column:1/-1;text-align:center;font-size:13px;color:var(--ink-soft);p
       </ul>
     </section>
 
-    <p class="tip">用手機也能玩：左右滑動或按畫面上的按鈕。</p>
+    <p class="tip">電腦、平板、手機和電子白板都能玩。</p>
   </aside>
 
   <main class="shelf">
     <h2>選一個遊戲</h2>
-    <p class="sub">每個遊戲都有初級、中級、高級，從初級開始挑戰。</p>
+    <p class="sub">點遊戲圖片或「開始玩」就能進入遊戲。</p>
 
     <div class="tabs" role="group" aria-label="依科目篩選">
       <button class="tab" type="button" data-s="all" aria-pressed="true">全部</button>
@@ -137,6 +142,20 @@ footer{grid-column:1/-1;text-align:center;font-size:13px;color:var(--ink-soft);p
     </div>
 
     <div class="grid" id="grid">
+      <article class="card" data-s="chinese">
+        <a class="thumb" href="punct-battle.html" tabindex="-1" aria-hidden="true"><img src="punct-battle.webp" alt="" width="560" height="315" loading="lazy"><span class="lv"><span>雙人對戰</span><span>單人挑戰</span></span></a>
+        <div class="top">
+          <div class="chip" aria-hidden="true"><span>，。</span></div>
+          <div>
+            <h3>標點符號大冒險</h3>
+            <div class="meta">國語 · 小學三年級 · 標點符號</div>
+          </div>
+        </div>
+        <p>選對標點就能攻擊怪獸！練習逗號、句號、頓號、分號、冒號、問號、感嘆號、引號、書名號和省略號。</p>
+        <div class="tags"><span class="new">新遊戲</span><span>電子白板</span><span>30 題</span></div>
+        <a class="play" href="punct-battle.html"><svg viewBox="0 0 10 10" aria-hidden="true"><path d="M2 1v8l7-4z"/></svg>開始玩</a>
+      </article>
+
       <article class="card" data-s="math">
         <a class="thumb" href="lele-run.html" tabindex="-1" aria-hidden="true"><img src="lele-run.webp" alt="" width="560" height="315" loading="lazy"><span class="lv"><span>初級</span><span>中級</span><span>高級</span></span></a>
         <div class="top">
@@ -147,7 +166,7 @@ footer{grid-column:1/-1;text-align:center;font-size:13px;color:var(--ink-soft);p
           </div>
         </div>
         <p>在夕陽屋頂上奔跑，只吃目標那一類的項：常數項、一次項或二次項。小心 3²、<i>x</i>·<i>x</i> 這種偽裝題！</p>
-        <div class="tags"><span class="new">新遊戲</span><span>3D 跑酷</span><span>約 3 分鐘</span></div>
+        <div class="tags"><span>3D 跑酷</span><span>約 3 分鐘</span></div>
         <a class="play" href="lele-run.html"><svg viewBox="0 0 10 10" aria-hidden="true"><path d="M2 1v8l7-4z"/></svg>開始玩</a>
       </article>
 
@@ -157,11 +176,6 @@ footer{grid-column:1/-1;text-align:center;font-size:13px;color:var(--ink-soft);p
         <p>新的數學遊戲正在準備，完成後會在公告欄通知。</p>
       </article>
 
-      <article class="card soon" data-s="chinese">
-        <div class="thumb" aria-hidden="true">製作中</div>
-        <div class="top"><div class="chip" aria-hidden="true">?</div><div><h3>國語小遊戲</h3><div class="meta">製作中</div></div></div>
-        <p>成語、字詞相關的練習遊戲，敬請期待。</p>
-      </article>
 
       <article class="card soon" data-s="life">
         <div class="thumb" aria-hidden="true">製作中</div>
@@ -171,7 +185,7 @@ footer{grid-column:1/-1;text-align:center;font-size:13px;color:var(--ink-soft);p
     </div>
   </main>
 
-  <footer>蘋果樹教室 · 國中學習小遊戲</footer>
+  <footer>蘋果樹教室 · 學習小遊戲</footer>
 </div>
 
 <script>
