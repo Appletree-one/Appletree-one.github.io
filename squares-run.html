@@ -1,0 +1,546 @@
+<!doctype html>
+<html lang="zh-Hant">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>樂樂平方數跑酷</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bungee&family=Noto+Sans+TC:wght@500;700;900&display=swap">
+<style>
+/* Layout: full-screen 3D sunset rooftop road (same world as 同類項跑酷). The current question floats top-centre; stats top-left; pause top-right; menus slide over the dimmed live scene. */
+:root{
+  --night:#20152a; --plum:#3a2643; --glass:rgba(48,31,58,.72); --line:rgba(255,232,214,.22);
+  --ink:#fff3e4; --muted:#d9c3cf; --gold:#f5b03a; --gold-deep:#a8601a;
+  --good:#7ee0b0; --bad:#ff5d73; --blue:#78c8ff;
+  --f-display:"Noto Sans TC","PingFang TC","Microsoft JhengHei",sans-serif;
+  --f-latin:"Bungee","Arial Black",sans-serif;
+  --f-math:Georgia,"Times New Roman",serif;
+  color-scheme:dark;
+}
+[hidden]{display:none!important}
+html,body{height:100%;overflow:hidden}
+body{margin:0;background:var(--night);color:var(--ink);font-family:var(--f-display);-webkit-tap-highlight-color:transparent;user-select:none;-webkit-user-select:none;touch-action:none}
+#game{position:fixed;inset:0;display:block;width:100%;height:100%}
+button{font-family:inherit;color:inherit;cursor:pointer}
+button:focus-visible{outline:3px solid var(--gold);outline-offset:3px}
+.math{font-family:var(--f-math);font-weight:700}
+
+/* ---------- overlays ---------- */
+.overlay{position:fixed;inset:0;overflow-y:auto;-webkit-overflow-scrolling:touch;touch-action:pan-y;
+  padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));
+  padding-block:calc(28px + env(safe-area-inset-top,0px)) calc(28px + env(safe-area-inset-bottom,0px));
+  background:linear-gradient(180deg,rgba(32,21,42,.93),rgba(32,21,42,.78) 55%,rgba(32,21,42,.9));z-index:20}
+.wrap{max-width:640px;margin:0 auto;display:flex;flex-direction:column;gap:22px}
+.eyebrow{font-family:var(--f-latin);color:var(--gold);letter-spacing:.08em;font-size:15px;display:flex;align-items:center;gap:10px}
+.eyebrow b{font-family:var(--f-display);font-weight:700;letter-spacing:.04em;font-size:17px}
+.eyebrow i{width:8px;height:8px;background:var(--gold);display:inline-block}
+.titleRow{display:flex;align-items:flex-end;gap:14px;flex-wrap:wrap}
+.title{font-size:clamp(76px,22vw,124px);font-weight:900;line-height:.9;letter-spacing:-.02em;margin:0;color:var(--ink);text-shadow:0 6px 0 rgba(0,0,0,.25)}
+.badge{background:var(--gold);color:#2a1606;font-weight:900;font-size:clamp(24px,6.5vw,34px);padding:8px 20px;border-radius:12px;transform:rotate(-3deg);box-shadow:0 7px 0 var(--gold-deep);margin-bottom:12px}
+.lead{font-size:18px;line-height:1.75;font-weight:700;margin:0;max-width:34em}
+.lead em{font-style:normal;color:var(--gold)}
+.sectionLabel{font-size:13px;letter-spacing:.16em;color:var(--muted);font-weight:700;margin:0 0 -10px}
+.chips{display:flex;flex-wrap:wrap;gap:8px}
+.chip{border:2px solid var(--line);background:transparent;border-radius:999px;padding:9px 16px;font-size:16px;font-weight:700}
+.chip[aria-pressed="true"]{background:var(--ink);color:var(--night);border-color:var(--ink)}
+.chip .math{font-size:17px}
+.levels{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}
+.level{display:flex;flex-direction:column;align-items:flex-start;gap:6px;text-align:left;width:100%;border:2px solid var(--line);background:var(--glass);border-radius:20px;padding:16px 20px;transition:transform .15s,border-color .15s;min-width:0}
+.level:hover{transform:translateY(-2px);border-color:var(--gold)}
+.level .nm{font-family:var(--f-math);font-size:30px;font-weight:700;color:var(--gold);line-height:1.1}
+.level .ds{font-size:15px;color:var(--muted);font-weight:700;line-height:1.5}
+.level.all{grid-column:1/-1}
+details.table{border:2px solid var(--line);border-radius:18px;background:rgba(255,255,255,.04)}
+details.table summary{cursor:pointer;padding:14px 18px;font-weight:900;font-size:17px;list-style:none;display:flex;align-items:center;gap:10px}
+details.table summary::-webkit-details-marker{display:none}
+details.table summary::before{content:'▸';color:var(--gold);transition:transform .15s}
+details.table[open] summary::before{transform:rotate(90deg)}
+.sqGrid{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:6px;padding:0 14px 16px}
+.sqGrid div{background:rgba(255,255,255,.06);border-radius:10px;padding:8px 4px;text-align:center;font-family:var(--f-math);font-weight:700;line-height:1.25}
+.sqGrid div span{display:block;font-size:14px;color:var(--muted)}
+.sqGrid div b{font-size:22px;color:var(--ink)}
+.sqGrid div.miss{background:rgba(255,93,115,.18);outline:2px solid var(--bad)}
+.keys{display:grid;grid-template-columns:auto 1fr;gap:12px 18px;align-items:center;color:var(--muted);font-weight:700}
+.kbd{display:inline-grid;place-items:center;min-width:40px;height:38px;padding:0 8px;border:2px solid var(--line);border-bottom-width:5px;border-radius:9px;font-family:var(--f-latin);font-size:14px;margin-right:6px;color:var(--ink)}
+
+/* ---------- HUD ---------- */
+#hud{position:fixed;inset:0;pointer-events:none;z-index:5}
+.hudL{position:absolute;left:max(14px,env(safe-area-inset-left,0px));top:calc(12px + env(safe-area-inset-top,0px));display:flex;flex-direction:column;gap:2px;text-shadow:0 2px 8px rgba(30,10,30,.55)}
+.count{font-family:var(--f-latin);font-size:48px;line-height:1;font-variant-numeric:tabular-nums}
+.count small{font-family:var(--f-display);font-size:17px;font-weight:900;opacity:.85;margin-left:4px}
+.meta{font-weight:700;font-size:16px;opacity:.9;font-variant-numeric:tabular-nums}
+.wrong{font-weight:900;font-size:17px;color:var(--bad)}
+.combo{font-weight:900;font-size:17px;color:var(--gold);min-height:1.4em}
+.hudR{position:absolute;right:max(14px,env(safe-area-inset-right,0px));top:calc(12px + env(safe-area-inset-top,0px));display:flex;gap:8px;pointer-events:auto}
+.modeBadge{border:2px solid var(--gold);color:var(--gold);border-radius:999px;padding:5px 14px;font-weight:700;font-size:17px;background:rgba(32,21,42,.55);font-family:var(--f-math)}
+.pauseBtn{width:36px;height:36px;border-radius:50%;border:2px solid var(--line);background:rgba(32,21,42,.55);font-weight:900;font-size:14px}
+.qcard{position:absolute;left:50%;top:calc(14px + env(safe-area-inset-top,0px));transform:translateX(-50%);text-align:center;background:rgba(32,21,42,.86);border:3px solid var(--gold);border-radius:22px;padding:8px 30px 10px;box-shadow:0 0 24px rgba(245,176,58,.35);min-width:220px}
+.qcard.pop{animation:qpop .4s}
+@keyframes qpop{0%{transform:translateX(-50%) scale(.7)}70%{transform:translateX(-50%) scale(1.08)}100%{transform:translateX(-50%) scale(1)}}
+.qcard .q{font-family:var(--f-math);font-weight:700;font-size:clamp(44px,9vw,76px);line-height:1.05;white-space:nowrap}
+.qcard .q .ans{color:var(--gold)}
+.qcard .qh{font-weight:700;font-size:clamp(15px,3.6vw,19px);color:var(--muted)}
+.qcard .qh .math{color:var(--ink);font-size:1.15em}
+.qcard.wait .q{opacity:.35}
+.ctrl{position:absolute;bottom:calc(34px + env(safe-area-inset-bottom,0px));width:clamp(74px,20vw,104px);aspect-ratio:1;border-radius:50%;border:3px solid rgba(255,232,214,.45);background:rgba(58,38,67,.75);pointer-events:auto;display:grid;place-items:center}
+.ctrl svg{width:42%;height:42%;fill:var(--gold)}
+#btnL{left:max(18px,env(safe-area-inset-left,0px))}#btnR{right:max(18px,env(safe-area-inset-right,0px))}
+.hint{position:absolute;left:50%;transform:translateX(-50%);bottom:calc(10px + env(safe-area-inset-bottom,0px));background:rgba(42,26,50,.82);border:2px solid var(--line);border-radius:999px;padding:7px 16px;font-weight:700;font-size:14px;white-space:nowrap}
+.hint b{color:var(--gold)}
+#toast{position:absolute;left:50%;bottom:calc(150px + env(safe-area-inset-bottom,0px));transform:translateX(-50%);width:min(88vw,460px);text-align:center;padding:10px 16px;border-radius:14px;font-weight:900;font-size:18px;line-height:1.45;background:rgba(32,21,42,.9);border:2px solid var(--line);opacity:0;transition:opacity .2s}
+#toast.show{opacity:1}#toast.good{border-color:var(--good)}#toast.bad{border-color:var(--bad)}
+#toast .math{font-size:24px}
+#toast small{display:block;font-size:14px;color:var(--muted);font-weight:700}
+#flash{position:fixed;inset:0;background:radial-gradient(ellipse at center,transparent 40%,rgba(255,60,90,.55));opacity:0;pointer-events:none;transition:opacity .35s;z-index:6}
+#flash.on{opacity:1;transition:none}
+
+/* ---------- result / pause ---------- */
+.panel{max-width:520px;margin:6vh auto 0;background:var(--plum);border:2px solid var(--line);border-radius:24px;padding:26px 22px;display:flex;flex-direction:column;gap:18px}
+.panel h2{margin:0;font-size:40px;font-weight:900;text-align:center}
+.stars{text-align:center;font-size:40px;color:var(--gold);letter-spacing:6px}
+.stats{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;text-align:center}
+.stats div{background:rgba(255,255,255,.06);border-radius:14px;padding:10px 4px}
+.stats b{display:block;font-family:var(--f-latin);font-size:24px;font-variant-numeric:tabular-nums}
+.stats span{font-size:13px;color:var(--muted);font-weight:700}
+.mist h3{margin:0 0 8px;font-size:16px;color:var(--muted)}
+.mist .sqGrid{padding:0}
+.allGood{text-align:center;font-weight:900;color:var(--good);font-size:18px;margin:0}
+.btnRow{display:flex;gap:10px;flex-wrap:wrap}
+.btn{flex:1;min-width:130px;border:none;border-radius:14px;padding:14px;font-size:18px;font-weight:900;background:var(--gold);color:#2a1606;box-shadow:0 5px 0 var(--gold-deep)}
+.btn.ghost{background:transparent;color:var(--ink);border:2px solid var(--line);box-shadow:none}
+@media (max-width:640px){
+  .qcard{top:calc(122px + env(safe-area-inset-top,0px));padding:6px 22px 8px;min-width:0}
+  .count{font-size:40px}
+}
+@media (max-width:440px){
+  .levels{grid-template-columns:1fr}
+  .sqGrid div b{font-size:19px}
+  .level{padding:14px 18px}
+}
+@media (prefers-reduced-motion:reduce){*{transition:none!important;animation:none!important}}
+</style>
+</head>
+<body>
+
+
+<canvas id="game" aria-label="樂樂跑酷 3D 畫面"></canvas>
+
+<div id="hud" hidden>
+  <div class="hudL">
+    <div class="count"><span id="okN">0</span><small>答對</small></div>
+    <div class="meta" id="meta">剩 10 題 · 00:00</div>
+    <div class="wrong">✗ 答錯 <span id="wrongN">0</span></div>
+    <div class="combo" id="combo"></div>
+  </div>
+  <div class="hudR"><div class="modeBadge" id="modeBadge">1²～10²</div><button class="pauseBtn" id="pauseBtn" aria-label="暫停">II</button></div>
+  <div class="qcard" id="qcard" aria-live="polite"><div class="q" id="qText">準備</div><div class="qh" id="qHint">&nbsp;</div></div>
+  <div id="toast"></div>
+  <button class="ctrl" id="btnL" aria-label="往左換道"><svg viewBox="0 0 10 10"><path d="M7.5 1.2v7.6L1.5 5z"/></svg></button>
+  <button class="ctrl" id="btnR" aria-label="往右換道"><svg viewBox="0 0 10 10"><path d="M2.5 1.2v7.6L8.5 5z"/></svg></button>
+  <div class="hint">←→ 換道 · 跑向<b>正確答案</b>的金幣</div>
+</div>
+<div id="flash"></div>
+
+<!-- MENU -->
+<div class="overlay" id="menu">
+  <div class="wrap">
+    <div class="eyebrow">SQUARE RUN <i></i> <b>屋頂跑酷</b></div>
+    <div class="titleRow"><h1 class="title">樂樂</h1><div class="badge">平方數跑酷</div></div>
+    <p class="lead">看上面的題目，左右換道，<em>跑向正確答案的金幣</em>！答錯的題目等一下會<em>再出現一次</em>，多跑幾次就記起來了。</p>
+
+    <details class="table" id="tableBox">
+      <summary>先看平方表（1² ～ 25²）</summary>
+      <div class="sqGrid" id="sqGrid"></div>
+    </details>
+
+    <p class="sectionLabel">題目怎麼問？</p>
+    <div class="chips" id="dirChips">
+      <button class="chip" data-d="f" aria-pressed="true">算平方　<span class="math">13² = ?</span></button>
+      <button class="chip" data-d="r" aria-pressed="false">找原數　<span class="math">169 = ?²</span></button>
+      <button class="chip" data-d="mix" aria-pressed="false">兩種混合</button>
+    </div>
+
+    <p class="sectionLabel">速度</p>
+    <div class="chips" id="spdChips">
+      <button class="chip" data-s="slow" aria-pressed="true">慢慢來</button>
+      <button class="chip" data-s="mid" aria-pressed="false">正常</button>
+      <button class="chip" data-s="fast" aria-pressed="false">快</button>
+    </div>
+
+    <p class="sectionLabel">小提示</p>
+    <div class="chips">
+      <button class="chip" id="hintChip" aria-pressed="true">題目下方顯示　<span class="math">13 × 13</span></button>
+    </div>
+
+    <p class="sectionLabel">選範圍開跑</p>
+    <div class="levels">
+      <button class="level" data-a="1" data-b="10"><span class="nm">1² ～ 10²</span><span class="ds">最基本的 10 個，先背熟這些。</span></button>
+      <button class="level" data-a="11" data-b="15"><span class="nm">11² ～ 15²</span><span class="ds">121、144、169… 每個考兩次。</span></button>
+      <button class="level" data-a="16" data-b="20"><span class="nm">16² ～ 20²</span><span class="ds">256、289、324… 每個考兩次。</span></button>
+      <button class="level" data-a="21" data-b="25"><span class="nm">21² ～ 25²</span><span class="ds">441、484、529… 每個考兩次。</span></button>
+      <button class="level all" data-a="11" data-b="25"><span class="nm">11² ～ 25²</span><span class="ds">兩位數的 15 個一起練。</span></button>
+      <button class="level all" data-a="1" data-b="25"><span class="nm">1² ～ 25² 總複習</span><span class="ds">全部 25 個，看看哪些還不熟。</span></button>
+    </div>
+
+    <div class="keys">
+      <div><span class="kbd">←</span><span class="kbd">→</span><span class="kbd">A</span><span class="kbd">D</span></div><div>換跑道</div>
+      <div><span class="kbd">手機</span></div><div>左右滑動，或點左右按鈕</div>
+    </div>
+  </div>
+</div>
+
+<!-- PAUSE -->
+<div class="overlay" id="pause" hidden>
+  <div class="panel"><h2>暫停中</h2>
+    <div class="btnRow"><button class="btn" id="resumeBtn">繼續跑</button><button class="btn ghost" id="quitBtn">回選單</button></div>
+  </div>
+</div>
+
+<!-- RESULT -->
+<div class="overlay" id="result" hidden>
+  <div class="panel">
+    <h2 id="rTitle">跑完了！</h2>
+    <div class="stars" id="stars">★★★</div>
+    <div class="stats">
+      <div><b id="rTime">00:00</b><span>花費時間</span></div>
+      <div><b id="rWrong">0</b><span>答錯次數</span></div>
+      <div><b id="rAcc">100%</b><span>第一次就答對</span></div>
+    </div>
+    <p class="allGood" id="allGood" hidden>全部一次就答對，太厲害了！</p>
+    <div class="mist" id="mist" hidden><h3>這些還要再背一下（紅框）</h3><div class="sqGrid" id="mistGrid"></div></div>
+    <div class="btnRow"><button class="btn" id="againBtn">再跑一次</button><button class="btn ghost" id="menuBtn">換範圍</button></div>
+  </div>
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+<script>
+(function(){
+"use strict";
+const $=id=>document.getElementById(id);
+const rnd=(a,b)=>a+Math.random()*(b-a);
+const pick=a=>a[Math.floor(Math.random()*a.length)];
+const shuffle=a=>{for(let i=a.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[a[i],a[j]]=[a[j],a[i]]}return a};
+const reduced=matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+/* ================= 題目 ================= */
+const sq=n=>n*n;
+const SPD={slow:{name:'慢慢來',speed:9},mid:{name:'正常',speed:12.5},fast:{name:'快',speed:16.5}};
+function swapLast(v){const a=String(v).split('');if(a.length<2)return 0;const i=a.length-2;if(a[i]===a[i+1])return 0;[a[i],a[i+1]]=[a[i+1],a[i]];return a[0]==='0'?0:+a.join('')}
+function pickWrong(main,extra,ans){ // 先從常見錯誤裡挑，不夠再補
+  const out=[];const ok=v=>v>0&&v!==ans&&!out.includes(v);
+  for(const v of shuffle(main.slice()))if(ok(v)&&out.length<2)out.push(v);
+  for(const v of shuffle(extra.slice()))if(ok(v)&&out.length<2)out.push(v);
+  return out;
+}
+function makeQ(item){
+  const n=item.n;
+  if(item.dir==='f'){
+    const ans=sq(n);
+    const wrong=pickWrong([sq(n-1),sq(n+1),n*2,swapLast(ans)],[ans+10,ans-10,sq(n+2),n*10],ans);
+    return {n,dir:'f',ans,opts:shuffle([ans,...wrong])};
+  }
+  const ans=n;const mate=n%10===0?n+10:n-n%10+(10-n%10)%10; // 平方尾數相同的數（14 和 16、13 和 17）
+  const wrong=pickWrong([n-1,n+1,mate,n*2>25?0:n*2].filter(v=>v<=30),[n+2,n-2,n+3],ans);
+  return {n,dir:'r',ans,opts:shuffle([ans,...wrong])};
+}
+const full=n=>`${n}² = ${sq(n)}`;
+
+/* ================= 3D 場景 ================= */
+const canvas=$('game');
+const renderer=new THREE.WebGLRenderer({canvas,antialias:true});
+renderer.setPixelRatio(Math.min(window.devicePixelRatio||1,2));
+renderer.shadowMap.enabled=true;renderer.shadowMap.type=THREE.PCFSoftShadowMap;
+const scene=new THREE.Scene();
+const camera=new THREE.PerspectiveCamera(60,1,0.1,400);
+
+function canvasTex(w,h,draw){const c=document.createElement('canvas');c.width=w;c.height=h;draw(c.getContext('2d'),w,h);const t=new THREE.CanvasTexture(c);t.anisotropy=4;return t}
+
+scene.background=canvasTex(4,512,(g,w,h)=>{const gr=g.createLinearGradient(0,0,0,h);
+  gr.addColorStop(0,'#2e1d3c');gr.addColorStop(.35,'#9a4f7e');gr.addColorStop(.58,'#f39aa6');gr.addColorStop(.72,'#ffd6b8');gr.addColorStop(1,'#6e4a6a');g.fillStyle=gr;g.fillRect(0,0,w,h)});
+scene.fog=new THREE.Fog(0xe7a0ae,45,125);
+
+scene.add(new THREE.HemisphereLight(0xffc6d8,0x3d2d4a,0.95));
+const sunLight=new THREE.DirectionalLight(0xffd2b0,0.85);
+sunLight.position.set(3,10,-14);sunLight.castShadow=true;
+sunLight.shadow.mapSize.set(1024,1024);
+Object.assign(sunLight.shadow.camera,{left:-12,right:12,top:14,bottom:-14,near:1,far:45});
+scene.add(sunLight);scene.add(sunLight.target);
+
+const sun=new THREE.Sprite(new THREE.SpriteMaterial({map:canvasTex(256,256,(g,w)=>{const r=g.createRadialGradient(w/2,w/2,0,w/2,w/2,w/2);
+  r.addColorStop(0,'rgba(255,250,235,1)');r.addColorStop(.25,'rgba(255,236,200,.95)');r.addColorStop(.6,'rgba(255,190,170,.35)');r.addColorStop(1,'rgba(255,170,170,0)');g.fillStyle=r;g.fillRect(0,0,w,w)}),fog:false,depthWrite:false,transparent:true}));
+sun.position.set(0,9,-160);sun.scale.set(70,70,1);scene.add(sun);
+
+// 地面與道路
+const LANES=[-2.4,0,2.4];
+const ground=new THREE.Mesh(new THREE.PlaneGeometry(300,300),new THREE.MeshLambertMaterial({color:0x3b2a44}));
+ground.rotation.x=-Math.PI/2;ground.position.set(0,-0.3,-100);scene.add(ground);
+const road=new THREE.Mesh(new THREE.PlaneGeometry(9.4,260),new THREE.MeshLambertMaterial({color:0x8d6d84}));
+road.rotation.x=-Math.PI/2;road.position.set(0,0,-110);road.receiveShadow=true;scene.add(road);
+const wallMat=new THREE.MeshLambertMaterial({color:0xe2bccc});
+[-1,1].forEach(s=>{const w=new THREE.Mesh(new THREE.BoxGeometry(0.5,0.7,260),wallMat);w.position.set(s*4.95,0.35,-110);w.receiveShadow=true;scene.add(w);
+  const e=new THREE.Mesh(new THREE.BoxGeometry(0.12,0.02,260),new THREE.MeshBasicMaterial({color:0xfff1f4}));e.position.set(s*4.2,0.02,-110);scene.add(e)});
+
+const movers=[]; // {obj, len}
+const dashMat=new THREE.MeshBasicMaterial({color:0xfff1f4});
+const dashGeo=new THREE.BoxGeometry(0.16,0.02,2.4);
+for(const x of [-1.2,1.2])for(let i=0;i<22;i++){const d=new THREE.Mesh(dashGeo,dashMat);d.position.set(x,0.02,8-i*6);scene.add(d);movers.push({obj:d,len:132})}
+
+// 大樓
+function windowTex(palette){return canvasTex(128,256,(g,w,h)=>{g.fillStyle='#2b1f36';g.fillRect(0,0,w,h);
+  const cols=6,rows=16,cw=w/cols,rh=h/rows;
+  for(let r=0;r<rows;r++)for(let c=0;c<cols;c++){if(Math.random()<0.38){g.fillStyle='#3a2c47';}else g.fillStyle=pick(palette);
+    g.fillRect(c*cw+cw*.22,r*rh+rh*.2,cw*.56,rh*.58)}})}
+const bMats=[['#ffe1a8','#ffd08a','#fff4d6','#ffb6c8'],['#ffe9c2','#b9d9ff','#ffd6e2','#fff2d0'],['#ffcf8f','#ffe8b8','#ff9fb6','#d6e4ff']].map(p=>{const t=windowTex(p);
+  return new THREE.MeshLambertMaterial({map:t,emissiveMap:t,emissive:0xffffff,emissiveIntensity:0.55})});
+const roofMat=new THREE.MeshLambertMaterial({color:0x2a1e35});
+const B_STEP=9.5,B_N=26,B_LEN=B_STEP*B_N;
+[-1,1].forEach(s=>{for(let row=0;row<2;row++)for(let i=0;i<B_N;i++){
+  const w=rnd(5,9),h=row?rnd(30,62):rnd(12,34),d=rnd(6,9.2);
+  const m=new THREE.Mesh(new THREE.BoxGeometry(w,h,d),[pick(bMats),pick(bMats),roofMat,roofMat,pick(bMats),pick(bMats)]);
+  m.position.set(s*(row?rnd(17,24):6.2+w/2+rnd(0,1.5)),h/2-0.3,-i*B_STEP+rnd(-1,1)+(row?4:0));
+  scene.add(m);movers.push({obj:m,len:B_LEN})}});
+
+// 路燈
+const poleMat=new THREE.MeshLambertMaterial({color:0x3d2c45}),bulbMat=new THREE.MeshBasicMaterial({color:0xffe2b5});
+[-1,1].forEach(s=>{for(let i=0;i<8;i++){const g=new THREE.Group();
+  const p=new THREE.Mesh(new THREE.CylinderGeometry(0.07,0.09,5.2,8),poleMat);p.position.y=2.6;g.add(p);
+  const arm=new THREE.Mesh(new THREE.BoxGeometry(1.1,0.08,0.08),poleMat);arm.position.set(-s*0.5,5.15,0);g.add(arm);
+  const b=new THREE.Mesh(new THREE.SphereGeometry(0.18,10,8),bulbMat);b.position.set(-s*1.0,5.0,0);g.add(b);
+  g.position.set(s*4.95,0.7,-i*20-6);scene.add(g);movers.push({obj:g,len:160})}});
+
+/* ================= 樂樂 ================= */
+const player=new THREE.Group();
+const parts={};
+(function buildLele(){
+  const M=c=>new THREE.MeshLambertMaterial({color:c});
+  const skin=M(0xffcf9e),shirt=M(0x2bb3a1),pants=M(0x33406e),cap=M(0xff8a3d),shoe=M(0x262033),hair=M(0x4a2d1e);
+  const box=(w,h,d,m)=>{const b=new THREE.Mesh(new THREE.BoxGeometry(w,h,d),m);b.castShadow=true;return b};
+  const body=new THREE.Group();player.add(body);parts.body=body;
+  for(const s of [-1,1]){const hip=new THREE.Group();hip.position.set(s*0.22,0.86,0);
+    const l=box(0.34,0.74,0.38,pants);l.position.y=-0.37;hip.add(l);
+    const sh=box(0.36,0.14,0.5,shoe);sh.position.set(0,-0.78,-0.05);hip.add(sh);
+    body.add(hip);parts[s<0?'legL':'legR']=hip}
+  const torso=new THREE.Mesh(new THREE.BoxGeometry(0.94,0.86,0.52),shirt);
+  torso.position.y=1.3;torso.castShadow=true;body.add(torso);
+  const belt=box(0.96,0.12,0.54,pants);belt.position.y=0.9;body.add(belt);
+  for(const s of [-1,1]){const sho=new THREE.Group();sho.position.set(s*0.6,1.64,0);
+    const a=box(0.25,0.68,0.3,shirt);a.position.y=-0.32;sho.add(a);
+    const hnd=new THREE.Mesh(new THREE.SphereGeometry(0.15,10,8),skin);hnd.position.y=-0.72;hnd.castShadow=true;sho.add(hnd);
+    body.add(sho);parts[s<0?'armL':'armR']=sho}
+  const faceTex=canvasTex(128,128,(g,w,h)=>{g.fillStyle='#ffcf9e';g.fillRect(0,0,w,h);g.fillStyle='#2a1a14';g.fillRect(34,46,14,18);g.fillRect(80,46,14,18);
+    g.strokeStyle='#2a1a14';g.lineWidth=7;g.beginPath();g.arc(64,74,22,0.15*Math.PI,0.85*Math.PI);g.stroke()});
+  const head=new THREE.Mesh(new THREE.BoxGeometry(0.64,0.6,0.58),[skin,skin,skin,skin,skin,new THREE.MeshLambertMaterial({map:faceTex})]);
+  head.position.y=2.1;head.castShadow=true;body.add(head);
+  const hb=box(0.66,0.32,0.06,hair);hb.position.set(0,2.2,0.3);body.add(hb);
+  const c1=box(0.7,0.22,0.64,cap);c1.position.y=2.47;body.add(c1);
+  const brim=box(0.62,0.06,0.34,cap);brim.position.set(0,2.38,-0.44);body.add(brim);
+  const btn=box(0.14,0.06,0.14,cap);btn.position.y=2.61;body.add(btn);
+})();
+player.scale.setScalar(0.92);
+scene.add(player);
+
+/* ================= 金幣 ================= */
+const coinGeo=new THREE.CylinderGeometry(1.0,1.0,0.24,40);coinGeo.rotateX(Math.PI/2);
+const coinMat=new THREE.MeshLambertMaterial({color:0xe9a332,emissive:0x5a3005});
+const labelGeo=new THREE.PlaneGeometry(1.96,1.96);
+const texCache={};
+function termTex(t){
+  if(texCache[t])return texCache[t];
+  const tex=canvasTex(256,256,(g,w)=>{
+    const c=w/2;const r=g.createRadialGradient(c-30,c-34,10,c,c,c);
+    r.addColorStop(0,'#fff0b0');r.addColorStop(.7,'#f6be4c');r.addColorStop(1,'#d88a22');
+    g.fillStyle=r;g.beginPath();g.arc(c,c,c-4,0,Math.PI*2);g.fill();
+    g.strokeStyle='#b06a1a';g.lineWidth=8;g.beginPath();g.arc(c,c,c-22,0,Math.PI*2);g.stroke();
+    const toks=[...t].map(ch=>ch==='²'||ch==='³'?{s:ch==='²'?'2':'3',sup:1}:{s:ch,it:ch==='x'});
+    const font=(p,sz)=>p.sup?`bold ${sz*0.6}px Georgia,serif`:p.it?`italic bold ${sz}px Georgia,serif`:`bold ${sz}px Georgia,serif`;
+    const meas=sz=>toks.reduce((a,p)=>{g.font=font(p,sz);return a+g.measureText(p.s).width+(p.it?sz*0.05:0)},0);
+    let sz=118;while(meas(sz)>176&&sz>40)sz-=4;
+    let x=c-meas(sz)/2;const base=c+sz*0.34;g.fillStyle='#5a2c0c';g.textBaseline='alphabetic';
+    for(const p of toks){g.font=font(p,sz);g.fillText(p.s,x,p.sup?base-sz*0.45:base);x+=g.measureText(p.s).width+(p.it?sz*0.05:0)}
+  });
+  return texCache[t]=tex;
+}
+const coins=[];
+function addCoin(term,lane,z){
+  const g=new THREE.Group();
+  const m=new THREE.Mesh(coinGeo,coinMat);m.castShadow=true;g.add(m);
+  const lab=new THREE.Mesh(labelGeo,new THREE.MeshBasicMaterial({map:termTex(term.t),transparent:true}));lab.position.z=0.12;g.add(lab);
+  g.position.set(LANES[lane],1.25,z);scene.add(g);
+  coins.push({g,term,lane,ph:Math.random()*6,done:false,die:0});
+}
+function removeCoin(c){scene.remove(c.g);c.g.children[1].material.dispose()}
+
+// 粒子
+const sparkTex=canvasTex(64,64,(g)=>{const r=g.createRadialGradient(32,32,0,32,32,32);r.addColorStop(0,'rgba(255,255,255,1)');r.addColorStop(1,'rgba(255,255,255,0)');g.fillStyle=r;g.fillRect(0,0,64,64)});
+const sparks=[];
+function burst(pos,color,n){for(let i=0;i<n;i++){const s=new THREE.Sprite(new THREE.SpriteMaterial({map:sparkTex,color,transparent:true,depthWrite:false,blending:THREE.AdditiveBlending}));
+  s.position.copy(pos);const sc=rnd(.25,.5);s.scale.set(sc,sc,1);scene.add(s);
+  sparks.push({s,v:new THREE.Vector3(rnd(-4,4),rnd(1,6),rnd(-3,3)),life:rnd(.4,.8),t:0})}}
+
+/* ================= 狀態 ================= */
+const S={state:'menu',dir:'f',spd:'slow',hint:true,a:1,b:10,speed:9,time:0,ok:0,wrong:0,streak:0,deck:[],cur:null,wait:0,missed:new Set(),firstOk:0,asked:new Set(),lane:1,px:0,run:0,stumble:0,shake:0};
+
+/* ================= 音效 ================= */
+let ac=null;
+function beep(f,d=.12,type='sine',v=.15,slide=0){if(!ac)return;const o=ac.createOscillator(),g=ac.createGain();o.type=type;o.frequency.setValueAtTime(f,ac.currentTime);
+  if(slide)o.frequency.exponentialRampToValueAtTime(f*slide,ac.currentTime+d);g.gain.setValueAtTime(v,ac.currentTime);g.gain.exponentialRampToValueAtTime(.001,ac.currentTime+d);o.connect(g).connect(ac.destination);o.start();o.stop(ac.currentTime+d)}
+const sfx={good:()=>{beep(880,.1,'triangle');setTimeout(()=>beep(1320,.14,'triangle'),70)},bad:()=>beep(220,.3,'sawtooth',.12,.5),move:()=>beep(520,.05,'sine',.05),
+  win:()=>[523,659,784,1047].forEach((f,i)=>setTimeout(()=>beep(f,.22,'triangle'),i*120)),combo:()=>[784,988,1319].forEach((f,i)=>setTimeout(()=>beep(f,.12,'square',.05),i*70))};
+
+/* ================= UI ================= */
+function fillGrid(el,a,b,missed){el.innerHTML='';for(let n=a;n<=b;n++){const d=document.createElement('div');if(missed&&missed.has(n))d.className='miss';d.innerHTML=`<span>${n}²</span><b>${sq(n)}</b>`;el.appendChild(d)}}
+fillGrid($('sqGrid'),1,25);
+let toastT=0;
+function toast(html,kind){const t=$('toast');t.innerHTML=html;t.className='show '+kind;clearTimeout(toastT);toastT=setTimeout(()=>t.className='',kind==='bad'?2600:1300)}
+const fmtTime=s=>{s=Math.floor(s);return String(Math.floor(s/60)).padStart(2,'0')+':'+String(s%60).padStart(2,'0')};
+function chipGroup(id,key,fn){document.querySelectorAll(`#${id} .chip[data-${key}]`).forEach(b=>b.addEventListener('click',()=>{
+  document.querySelectorAll(`#${id} .chip[data-${key}]`).forEach(x=>x.setAttribute('aria-pressed',x===b?'true':'false'));fn(b.dataset[key])}))}
+chipGroup('dirChips','d',v=>S.dir=v);chipGroup('spdChips','s',v=>S.spd=v);
+$('hintChip').addEventListener('click',()=>{S.hint=!S.hint;$('hintChip').setAttribute('aria-pressed',S.hint)});
+document.querySelectorAll('.level').forEach(b=>b.addEventListener('click',()=>start(+b.dataset.a,+b.dataset.b)));
+
+function showQ(q){
+  const c=$('qcard');c.classList.remove('wait','pop');void c.offsetWidth;c.classList.add('pop');
+  if(q.dir==='f'){$('qText').innerHTML=`${q.n}² = <span class="ans">?</span>`;$('qHint').innerHTML=S.hint?`就是 <span class="math">${q.n} × ${q.n}</span>`:'&nbsp;'}
+  else{$('qText').innerHTML=`${sq(q.n)} = <span class="ans">?</span>²`;$('qHint').innerHTML=S.hint?'哪個數自己乘自己會等於它？':'&nbsp;'}
+}
+function hud(){$('okN').textContent=S.ok;$('wrongN').textContent=S.wrong;$('meta').textContent=`剩 ${S.deck.length+(S.cur?1:0)} 題 · ${fmtTime(S.time)}`;
+  $('combo').textContent=S.streak>=3?`連續答對 ${S.streak} 題！`:''}
+
+function start(a,b){
+  if(!ac){try{ac=new (window.AudioContext||window.webkitAudioContext)()}catch(e){}}
+  if(ac&&ac.state==='suspended')ac.resume();
+  coins.splice(0).forEach(removeCoin);
+  let ns=[];for(let n=a;n<=b;n++)ns.push(n);if(ns.length<10)ns=ns.concat(ns);
+  shuffle(ns);for(let i=1;i<ns.length;i++)if(ns[i]===ns[i-1]){const j=(i+2)%ns.length;[ns[i],ns[j]]=[ns[j],ns[i]]}
+  const deck=ns.map(n=>({n,dir:S.dir==='mix'?pick(['f','r']):S.dir}));
+  Object.assign(S,{state:'play',a,b,speed:SPD[S.spd].speed,time:0,ok:0,wrong:0,streak:0,deck,cur:null,wait:0.6,missed:new Set(),firstOk:0,asked:new Set(),total:deck.length,lane:1});
+  $('modeBadge').textContent=`${a}²～${b}²`;
+  $('qText').textContent='準備';$('qHint').innerHTML='&nbsp;';$('qcard').classList.add('wait');
+  $('menu').hidden=true;$('result').hidden=true;$('pause').hidden=true;$('hud').hidden=false;hud();
+}
+function toMenu(){S.state='menu';coins.splice(0).forEach(removeCoin);$('hud').hidden=true;$('result').hidden=true;$('pause').hidden=true;$('menu').hidden=false}
+$('againBtn').onclick=()=>start(S.a,S.b);$('menuBtn').onclick=toMenu;$('quitBtn').onclick=toMenu;
+function pauseGame(){if(S.state!=='play')return;S.state='paused';$('pause').hidden=false}
+function resume(){if(S.state!=='paused')return;S.state='play';$('pause').hidden=true;last=performance.now()}
+$('pauseBtn').onclick=pauseGame;$('resumeBtn').onclick=resume;
+document.addEventListener('visibilitychange',()=>{if(document.hidden)pauseGame()});
+
+/* ================= 操作 ================= */
+function move(d){if(S.state!=='play')return;const n=Math.max(0,Math.min(2,S.lane+d));if(n!==S.lane){S.lane=n;sfx.move()}}
+addEventListener('keydown',e=>{const k=e.key.toLowerCase();
+  if(k==='arrowleft'||k==='a'){move(-1);e.preventDefault()}else if(k==='arrowright'||k==='d'){move(1);e.preventDefault()}
+  else if(k==='escape'||k==='p'){S.state==='play'?pauseGame():resume()}});
+const bindBtn=(el,d)=>el.addEventListener('pointerdown',e=>{e.preventDefault();e.stopPropagation();move(d)});
+bindBtn($('btnL'),-1);bindBtn($('btnR'),1);
+let tx0=null,ty0=0;
+canvas.addEventListener('touchstart',e=>{const t=e.changedTouches[0];tx0=t.clientX;ty0=t.clientY},{passive:true});
+canvas.addEventListener('touchmove',e=>{if(tx0===null)return;const t=e.changedTouches[0],dx=t.clientX-tx0;if(Math.abs(dx)>34&&Math.abs(dx)>Math.abs(t.clientY-ty0)){move(dx>0?1:-1);tx0=t.clientX}},{passive:true});
+canvas.addEventListener('touchend',()=>{tx0=null},{passive:true});
+
+/* ================= 遊戲邏輯 ================= */
+function spawnRow(){
+  const item=S.deck.shift();const q=makeQ(item);S.cur=q;
+  const lanes=shuffle([0,1,2]);
+  q.opts.forEach((v,i)=>addCoin({t:String(v),v},lanes[i],-74));
+  showQ(q);hud();
+}
+function eat(c){
+  const q=S.cur;if(!q)return;
+  coins.forEach(k=>{if(!k.done){k.done=true;if(k!==c){k.die=0.001;k.fade=true}}});
+  c.die=0.001;const pos=c.g.position.clone();
+  const first=!S.asked.has(q.dir+q.n);S.asked.add(q.dir+q.n);
+  if(c.term.v===q.ans){
+    S.ok++;S.streak++;if(first)S.firstOk++;
+    sfx.good();burst(pos,0xffd36a,reduced?6:16);
+    if(S.streak>0&&S.streak%5===0){setTimeout(sfx.combo,180);burst(pos,0x7ee0b0,reduced?6:24)}
+    $('qText').innerHTML=q.dir==='f'?`${q.n}² = <span class="ans">${sq(q.n)}</span>`:`${sq(q.n)} = <span class="ans">${q.n}</span>²`;
+    toast(`✓ <span class="math">${full(q.n)}</span>`,'good');
+    S.speed=Math.min(SPD[S.spd].speed+3,S.speed+0.15);
+  }else{
+    S.wrong++;S.streak=0;S.missed.add(q.n);
+    S.deck.splice(Math.min(2,S.deck.length),0,{n:q.n,dir:q.dir}); // 兩題後再考一次
+    sfx.bad();burst(pos,0xff5d73,reduced?4:10);S.stumble=0.5;S.shake=reduced?0:0.35;
+    const f=$('flash');f.classList.add('on');setTimeout(()=>f.classList.remove('on'),60);
+    $('qText').innerHTML=q.dir==='f'?`${q.n}² = <span class="ans">${sq(q.n)}</span>`:`${sq(q.n)} = <span class="ans">${q.n}</span>²`;
+    toast(`✗ 正確是 <span class="math">${full(q.n)}</span>，不是 ${c.term.t}<small>這題等一下會再出現</small>`,'bad');
+  }
+  S.cur=null;S.wait=S.wrong&&c.term.v!==q.ans?2.2:1.1;hud();
+  if(!S.deck.length)finish();
+}
+function finish(){
+  S.state='done';
+  setTimeout(()=>{
+    S.state='over';coins.splice(0).forEach(removeCoin);sfx.win();
+    $('hud').hidden=true;$('result').hidden=false;
+    const uniq=S.asked.size;const acc=Math.round(S.firstOk/Math.max(1,uniq)*100);
+    $('rTime').textContent=fmtTime(S.time);$('rWrong').textContent=S.wrong;$('rAcc').textContent=acc+'%';
+    $('stars').textContent=S.wrong===0?'★★★':acc>=80?'★★☆':'★☆☆';
+    $('rTitle').textContent=S.wrong===0?'全部答對！':'跑完了！';
+    $('allGood').hidden=S.wrong>0;$('mist').hidden=S.wrong===0;
+    if(S.wrong)fillGrid($('mistGrid'),S.a,S.b,S.missed);
+  },900);
+}
+
+/* ================= 主迴圈 ================= */
+function resize(){const w=innerWidth,h=innerHeight;renderer.setSize(w,h,false);camera.aspect=w/h;
+  const half=26*Math.PI/180;const v=2*Math.atan(Math.tan(half)/camera.aspect)*180/Math.PI;camera.fov=Math.max(56,Math.min(84,v));camera.updateProjectionMatrix()}
+addEventListener('resize',resize);resize();
+
+let last=performance.now(),clock=0;
+function frame(now){
+  requestAnimationFrame(frame);
+  let dt=Math.min(0.05,(now-last)/1000);last=now;
+  if(S.state==='paused'){renderer.render(scene,camera);return}
+  clock+=dt;
+  const playing=S.state==='play';
+  const spd=S.state==='menu'||S.state==='over'?9:S.speed*(S.stumble>0?0.55:1);
+  const dz=spd*dt;
+
+  for(const m of movers){m.obj.position.z+=dz;if(m.obj.position.z>14)m.obj.position.z-=m.len}
+
+  if(playing){S.time+=dt;hud();
+    if(!S.cur){S.wait-=dt;if(S.wait<=0&&S.deck.length)spawnRow()}}
+
+  // player
+  const tx=S.state==='menu'?Math.sin(clock*0.6)*2.4:LANES[S.lane];
+  S.px+=(tx-S.px)*Math.min(1,dt*12);player.position.x=S.px;
+  S.run+=dt*spd*0.62;
+  const sw=Math.sin(S.run);
+  parts.legL.rotation.x=sw*0.95;parts.legR.rotation.x=-sw*0.95;
+  parts.armL.rotation.x=-sw*0.85;parts.armR.rotation.x=sw*0.85;
+  parts.body.position.y=Math.abs(Math.cos(S.run))*0.14;
+  player.rotation.z=-(tx-S.px)*0.09;player.rotation.y=-(tx-S.px)*0.12;
+  if(S.stumble>0){S.stumble-=dt;parts.body.rotation.x=Math.sin(S.stumble*20)*0.18}else parts.body.rotation.x=-0.08;
+
+  // coins
+  let nearest=null,nd=9;
+  for(let i=coins.length-1;i>=0;i--){const c=coins[i];
+    if(c.die>0){c.die+=dt;const k=c.fade?Math.max(0.05,1-c.die*3.5):1+c.die*2.5;c.g.scale.setScalar(k);c.g.position.y+=dt*4;c.g.children[1].material.opacity=Math.max(0,1-c.die*4);
+      c.g.position.z+=dz*0.3;if(c.die>0.26){removeCoin(c);coins.splice(i,1)}continue}
+    c.g.position.z+=dz;c.g.rotation.y=Math.sin(clock*2.4+c.ph)*0.35;c.g.position.y=1.35+Math.sin(clock*3+c.ph)*0.08;
+    if(playing&&!c.done&&c.g.position.z>-0.6){
+      const d=Math.abs(S.px-c.g.position.x);
+      if(c.g.position.z<0.9&&d<1.15){eat(c);continue}
+      if(d<nd){nd=d;nearest=c}}
+    if(c.g.position.z>10){removeCoin(c);coins.splice(i,1)}}
+  // 剛好在兩條跑道中間時，算最近的那一枚
+  if(playing&&nearest&&!nearest.done&&nearest.g.position.z>=0.9)eat(nearest);
+
+  // sparks
+  for(let i=sparks.length-1;i>=0;i--){const p=sparks[i];p.t+=dt;p.v.y-=9*dt;p.s.position.addScaledVector(p.v,dt);p.s.material.opacity=1-p.t/p.life;
+    if(p.t>=p.life){scene.remove(p.s);p.s.material.dispose();sparks.splice(i,1)}}
+
+  // camera
+  let sx=0,sy=0;if(S.shake>0){S.shake-=dt;sx=rnd(-.12,.12);sy=rnd(-.08,.08)}
+  camera.position.set(S.px*0.35+sx,4.3+sy,7.6);camera.lookAt(S.px*0.2,1.3,-10);
+  renderer.render(scene,camera);
+}
+requestAnimationFrame(frame);
+if(location.hash==='#test'){window.__S=S;window.__coins=coins;window.__move=move}
+})();
+</script>
+
+</body>
+</html>
