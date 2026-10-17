@@ -1,0 +1,556 @@
+<!doctype html>
+<html lang="zh-Hant">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<style>[hidden]{display:none!important}body{margin:0}:root{padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}</style>
+<title>家庭好習慣大富翁</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;500;700;800&family=Noto+Serif+TC:wght@700;900&display=swap">
+<style>
+/* Layout: 卡通鳥瞰風。藍色海面上一塊綠色草地島，外圈是石板路格子、每格一顆亮面圓章，中間是草地擲骰區，下方藍色 HUD 集星列 */
+:root{
+  --sea:#43B4F0; --sea-dk:#2690D6; --sand:#F6E3A6; --grass:#7DCB3F; --grass-dk:#57A52A; --grass-lt:#A9E05C;
+  --road:#C3C8CF; --road-dk:#959BA4; --rim:#F8D33C;
+  --ink:#24303C; --paper:#FFFFFF; --muted:#5B6672;
+  --orange:#FF8A1F; --orange-dk:#D4560A; --blue:#2F8DE8; --blue-dk:#1A5DB0; --yellow:#FFCB2B; --yellow-dk:#D79A00;
+  --green:#3FBF4E; --green-dk:#258A33; --red:#F04B4B; --purple:#8F5BE8;
+  --f-display:"Noto Sans TC","PingFang TC","Microsoft JhengHei",system-ui,sans-serif;
+  --f-body:"Noto Sans TC","PingFang TC","Microsoft JhengHei",system-ui,sans-serif;
+  color-scheme:light;
+}
+*{box-sizing:border-box}
+body{color:var(--ink);font-family:var(--f-body);
+  background:radial-gradient(circle at 15% 10%,rgba(255,255,255,.35) 0 2px,transparent 3px) 0 0/38px 38px,
+             linear-gradient(180deg,#66C6F5,var(--sea) 40%,var(--sea-dk));background-color:var(--sea);overflow-x:hidden}
+.wrap{max-width:560px;margin:0 auto;padding-block:12px 28px;
+  padding-left:max(12px,env(safe-area-inset-left,0px));padding-right:max(12px,env(safe-area-inset-right,0px));
+  display:flex;flex-direction:column;gap:12px}
+button{font:inherit;cursor:pointer;border:0;color:inherit}
+button:focus-visible,input:focus-visible,select:focus-visible{outline:3px solid var(--yellow);outline-offset:2px}
+.outline{text-shadow:-2px -2px 0 var(--o),2px -2px 0 var(--o),-2px 2px 0 var(--o),2px 2px 0 var(--o),0 2px 0 var(--o),0 4px 0 rgba(0,0,0,.25)}
+
+/* 頂部 */
+.top{display:flex;align-items:center;justify-content:space-between;gap:10px}
+.chip{background:linear-gradient(180deg,#3E9BF0,var(--blue-dk));color:#fff;border:2px solid #BFE2FF;border-radius:10px;padding:4px 12px;
+  font-size:.8rem;font-weight:700;line-height:1.35;box-shadow:0 3px 0 rgba(0,40,90,.35)}
+.chip b{color:var(--yellow)}
+.sq-btn{width:46px;height:46px;border-radius:12px;display:grid;place-items:center;flex:none;
+  background:linear-gradient(180deg,#FFE27A,var(--yellow));border:2px solid #fff;box-shadow:0 4px 0 var(--yellow-dk)}
+.sq-btn svg{width:24px;height:24px;stroke:#7A4E00;fill:none;stroke-width:2.2}
+.sq-btn:active{transform:translateY(3px);box-shadow:0 1px 0 var(--yellow-dk)}
+h1{margin:0;text-align:center;font-family:var(--f-display);font-weight:900;font-size:clamp(1.9rem,9vw,2.6rem);color:var(--yellow);--o:#B2470A;letter-spacing:.04em;line-height:1.2}
+h1 small{display:block;font-size:.42em;color:#fff;--o:var(--blue-dk);letter-spacing:.2em;margin-bottom:2px}
+
+/* 草地島 + 棋盤 */
+.island{background:radial-gradient(circle at 30% 25%,var(--grass-lt),var(--grass) 55%,var(--grass-dk));border-radius:34px;padding:12px;
+  border:6px solid var(--sand);box-shadow:0 0 0 4px rgba(255,255,255,.45),0 10px 0 rgba(10,60,110,.35);perspective:1100px}
+.board{display:grid;grid-template-columns:repeat(5,1fr);grid-template-rows:repeat(5,1fr);gap:clamp(4px,1.4vw,8px);aspect-ratio:1/1;width:100%;max-width:100%;
+  transform:rotateX(16deg);transform-origin:50% 70%}
+.cell{position:relative;min-width:0;border-radius:12px;background:linear-gradient(180deg,var(--road),var(--road-dk));
+  border:3px solid var(--rim);box-shadow:0 5px 0 #6C727B;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:1px;padding:2px}
+.disc{width:58%;aspect-ratio:1;border-radius:50%;display:grid;place-items:center;font-weight:900;color:#fff;font-size:clamp(.85rem,4.4vw,1.4rem);line-height:1;
+  background:radial-gradient(circle at 34% 28%,rgba(255,255,255,.75) 0 14%,transparent 16%),radial-gradient(circle at 50% 60%,var(--c),color-mix(in srgb,var(--c) 70%,#000));
+  border:2px solid #fff;box-shadow:0 3px 0 rgba(0,0,0,.28)}
+.cell .lbl{font-weight:900;font-size:clamp(.5rem,2.3vw,.76rem);letter-spacing:-.04em;max-width:100%;overflow:hidden;color:#fff;--o:#444B55;line-height:1.1;text-align:center;white-space:nowrap;
+  text-shadow:-1px -1px 0 #3D444D,1px -1px 0 #3D444D,-1px 1px 0 #3D444D,1px 1px 0 #3D444D}
+.cell.start,.cell.volcano,.cell.praise,.cell.family{background:radial-gradient(circle at 40% 30%,var(--grass-lt),var(--grass));border-color:#fff;box-shadow:0 5px 0 var(--grass-dk)}
+.cell.start .disc,.cell.volcano .disc,.cell.praise .disc,.cell.family .disc{width:68%;font-size:clamp(1.1rem,5.6vw,1.8rem)}
+.cell.here{border-color:#fff;box-shadow:0 0 0 3px var(--orange),0 5px 0 #6C727B;animation:glow 1.2s ease-in-out infinite}
+@keyframes glow{50%{box-shadow:0 0 0 5px var(--yellow),0 5px 0 #6C727B}}
+.tokens{position:absolute;left:0;right:0;top:-10%;display:flex;flex-wrap:wrap;gap:1px;justify-content:center;pointer-events:none;transform:rotateX(-16deg)}
+.tok{width:clamp(20px,6.2vw,32px);line-height:0;filter:drop-shadow(0 2px 0 rgba(0,0,0,.35))}
+.tok svg,.ava svg{width:100%;height:auto;display:block}
+.tok.active{animation:bob .8s ease-in-out infinite}
+@keyframes bob{50%{translate:0 -6px}}
+
+/* 中央擲骰區 */
+.center{grid-column:2/5;grid-row:2/5;position:relative;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:clamp(5px,1.8vw,10px);text-align:center;padding:6px;
+  border-radius:20px;background:radial-gradient(ellipse 30% 18% at 20% 82%,#6FD0FF 60%,transparent 63%),radial-gradient(circle at 50% 45%,var(--grass-lt),var(--grass))}
+.tree{position:absolute;width:clamp(16px,5vw,26px);aspect-ratio:1;border-radius:50%;background:radial-gradient(circle at 35% 30%,#B8F07A,#3E9A25);box-shadow:0 4px 0 #6B4A2B}
+.turn{background:#fff;border:3px solid var(--blue);border-radius:99px;padding:3px 14px;font-weight:900;font-size:clamp(.85rem,3.8vw,1.05rem);box-shadow:0 3px 0 var(--blue-dk)}
+.turn span{color:var(--pc)}
+.die{width:clamp(46px,13vw,64px);aspect-ratio:1;border-radius:14px;display:grid;grid-template:repeat(3,1fr)/repeat(3,1fr);padding:11%;
+  background:linear-gradient(160deg,#fff,#E8ECF2);border:2px solid #fff;box-shadow:0 5px 0 #A9B0BA,0 6px 10px rgba(0,0,0,.2)}
+.die i{width:82%;min-width:7px;aspect-ratio:1;border-radius:50%;background:var(--ink);place-self:center;visibility:hidden}
+.die i.on{visibility:visible}
+.die i.on:nth-child(5):only-of-type{background:var(--red)}
+.die.roll{animation:shake .5s ease}
+@keyframes shake{20%{transform:rotate(-18deg) scale(1.1)}40%{transform:rotate(14deg)}60%{transform:rotate(-8deg)}80%{transform:rotate(5deg)}}
+.roll-btn{width:clamp(66px,19vw,88px);aspect-ratio:1;border-radius:50%;display:grid;place-items:center;
+  background:radial-gradient(circle at 35% 25%,rgba(255,255,255,.7) 0 12%,transparent 14%),radial-gradient(circle at 50% 60%,#FFB04A,var(--orange) 55%,var(--orange-dk));
+  border:4px solid #FFF3C4;box-shadow:0 0 0 3px var(--orange-dk),0 6px 0 #9E3E06;
+  font-weight:900;font-size:clamp(1.2rem,5.4vw,1.7rem);font-style:italic;color:#fff;--o:#9E3E06;
+  text-shadow:-2px -2px 0 #9E3E06,2px -2px 0 #9E3E06,-2px 2px 0 #9E3E06,2px 2px 0 #9E3E06}
+.roll-btn:active{transform:translateY(4px);box-shadow:0 0 0 3px var(--orange-dk),0 2px 0 #9E3E06}
+.roll-btn:disabled{filter:grayscale(.7);opacity:.7;cursor:default}
+
+/* 藍色 HUD 集星列 */
+.scores{background:linear-gradient(180deg,#3E9BF0,var(--blue-dk));border:3px solid #BFE2FF;border-radius:20px;padding:12px;display:flex;flex-direction:column;gap:10px;color:#fff;box-shadow:0 5px 0 rgba(0,40,90,.4)}
+.scores h2{margin:0;font-size:1rem;font-weight:900;display:flex;justify-content:space-between;align-items:baseline}
+.scores h2 small{font-weight:700;color:#D6ECFF;font-size:.8rem}
+.prow{display:grid;grid-template-columns:auto minmax(0,1fr) auto;align-items:center;gap:10px;padding:5px 8px;border-radius:14px;background:rgba(0,30,80,.22)}
+.prow.cur{background:rgba(255,255,255,.2);box-shadow:inset 0 0 0 2px var(--yellow)}
+.ava{width:44px;height:44px;border-radius:50%;display:grid;place-items:end center;overflow:hidden;padding:4px 8px 0;
+  background:radial-gradient(circle at 50% 35%,#FFFFFF,#DCEBFA);border:3px solid var(--yellow);box-shadow:0 3px 0 rgba(0,0,0,.25)}
+.prow .info{min-width:0;display:flex;flex-direction:column;gap:5px}
+.prow .nm{font-weight:800;font-size:.92rem;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.prow .nm em{font-style:normal;font-size:.7rem;background:var(--yellow);color:#6B4300;padding:1px 6px;border-radius:99px;margin-left:6px}
+.bar{height:10px;border-radius:99px;background:rgba(0,20,60,.45);overflow:hidden;border:1px solid rgba(255,255,255,.35)}
+.bar b{display:block;height:100%;background:linear-gradient(180deg,#FFE680,var(--yellow));border-radius:99px;transition:width .5s}
+.pts{font-variant-numeric:tabular-nums;font-weight:900;min-width:3.4em;text-align:right;color:var(--yellow);font-size:1.05rem}
+.pts.pop{animation:pop .6s}
+@keyframes pop{40%{transform:scale(1.6);color:#fff}}
+.badge2{font-size:.66rem;background:var(--red);color:#fff;padding:1px 6px;border-radius:99px;margin-left:4px}
+.legend{display:flex;flex-wrap:wrap;gap:6px 12px;font-size:.76rem;color:#E3F2FF}
+.legend span::before{content:"";display:inline-block;width:11px;height:11px;border-radius:50%;background:var(--c);border:1.5px solid #fff;margin-right:5px;vertical-align:-1px}
+
+/* 彈出卡 */
+.overlay{position:fixed;inset:0;background:rgba(10,40,80,.45);display:flex;align-items:flex-end;justify-content:center;z-index:20;
+  padding:0 env(safe-area-inset-right,0px) 0 env(safe-area-inset-left,0px)}
+.sheet{background:#fff;border:4px solid var(--blue);border-bottom:0;width:100%;max-width:520px;border-radius:26px 26px 0 0;
+  padding:22px max(18px,env(safe-area-inset-left,0px)) calc(22px + env(safe-area-inset-bottom,0px));
+  display:flex;flex-direction:column;gap:12px;max-height:88%;overflow:auto;animation:up .3s cubic-bezier(.3,1.4,.6,1);box-shadow:0 -6px 0 var(--blue-dk)}
+@media(min-width:600px){.overlay{align-items:center}.sheet{border-radius:26px;border-bottom:4px solid var(--blue);box-shadow:0 6px 0 var(--blue-dk)}}
+@keyframes up{from{transform:translateY(60px) scale(.95);opacity:.4}}
+.tag{align-self:flex-start;font-size:.8rem;font-weight:900;color:#fff;background:var(--c);padding:3px 12px;border-radius:99px;border:2px solid #fff;box-shadow:0 2px 0 rgba(0,0,0,.2)}
+.sheet h3{margin:0;font-weight:900;font-size:1.4rem;line-height:1.45;text-wrap:balance}
+.sheet p{margin:0;line-height:1.65;color:var(--muted)}
+.answer{font-weight:900;font-size:1.55rem;color:var(--orange-dk);background:#FFF6DA;border:3px dashed var(--yellow);border-radius:16px;padding:12px;text-align:center}
+.answer small{display:block;font-size:.85rem;font-weight:500;color:var(--muted);margin-top:4px}
+.btns{display:flex;gap:10px;flex-wrap:wrap}
+.btn{flex:1 1 140px;padding:12px 16px;border-radius:16px;font-weight:900;font-size:1rem;background:#EEF2F6;border:2px solid #fff;box-shadow:0 4px 0 #B6BEC8}
+.btn:active{transform:translateY(3px);box-shadow:0 1px 0 #B6BEC8}
+.btn.primary{background:linear-gradient(180deg,#FFAE4A,var(--orange));color:#fff;box-shadow:0 4px 0 var(--orange-dk)}
+.btn.yes{background:linear-gradient(180deg,#6FDB7A,var(--green));color:#fff;box-shadow:0 4px 0 var(--green-dk)}
+.who{font-size:.9rem;color:var(--muted)}
+.who b{color:var(--pc)}
+.form{display:flex;flex-direction:column;gap:12px}
+.form label{display:flex;flex-direction:column;gap:5px;font-size:.85rem;color:var(--muted);font-weight:700}
+.form input,.form select{font:inherit;font-size:1rem;padding:10px 12px;border-radius:12px;border:2px solid #CFD8E2;background:#F6F9FC;color:var(--ink);width:100%}
+.namegrid{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.rank{display:flex;flex-direction:column;gap:6px}
+.rank div{display:flex;justify-content:space-between;padding:9px 14px;border-radius:12px;background:#EEF6FF;font-weight:700}
+.big-star{font-size:3.4rem;text-align:center;line-height:1;color:var(--yellow);text-shadow:0 4px 0 var(--yellow-dk)}
+.card{perspective:800px;height:150px}
+.card-in{position:relative;width:100%;height:100%;transition:transform .6s;transform-style:preserve-3d}
+.card.flip .card-in{transform:rotateY(180deg)}
+.card .face{position:absolute;inset:0;border-radius:18px;backface-visibility:hidden;-webkit-backface-visibility:hidden;
+  display:flex;flex-direction:column;align-items:center;justify-content:center;gap:6px;padding:14px;text-align:center}
+.card .back{background:repeating-linear-gradient(45deg,#9B6BF0 0 14px,#8450E0 14px 28px);border:4px solid #fff;box-shadow:0 0 0 3px var(--purple),0 5px 0 #5B2FB0;font-weight:900;font-size:3rem;color:#fff;cursor:pointer}
+.card .back small{font-size:.85rem;font-weight:800;letter-spacing:.15em}
+.card .front{transform:rotateY(180deg);border:3px solid var(--fc);background:color-mix(in srgb,var(--fc) 12%,#fff)}
+.card .front b{font-size:1.35rem;font-weight:900;color:var(--fc)}
+.card .front span{font-size:1.05rem;font-weight:700;line-height:1.5;color:var(--ink)}
+.lava{font-size:3rem;text-align:center;line-height:1}
+.btns.laugh .btn{flex:1 1 45%}
+.sheet.erupt{animation:quake .6s ease;box-shadow:0 0 0 6px #FF7A3D,0 0 50px 10px rgba(255,110,60,.6)}
+@keyframes quake{15%{transform:translate(-6px,2px)}30%{transform:translate(6px,-2px)}45%{transform:translate(-4px,1px)}60%{transform:translate(4px,0)}80%{transform:translate(-2px,0)}}
+.toast{position:fixed;left:50%;top:calc(14px + env(safe-area-inset-top,0px));transform:translateX(-50%);background:linear-gradient(180deg,#FFE27A,var(--yellow));color:#6B4300;
+  border:3px solid #fff;padding:8px 18px;border-radius:99px;font-weight:900;font-size:.95rem;z-index:30;box-shadow:0 4px 0 var(--yellow-dk);max-width:calc(100% - 32px);text-align:center}
+@media (prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
+</style>
+
+<div class="wrap">
+  <div class="top">
+    <div class="chip">家庭版・好習慣大冒險<br><span id="questTxt"></span></div>
+    <button class="sq-btn" id="setupBtn" type="button" aria-label="遊戲設定">
+      <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M12 2v3M12 19v3M4.2 4.2l2.1 2.1M17.7 17.7l2.1 2.1M2 12h3M19 12h3M4.2 19.8l2.1-2.1M17.7 6.3l2.1-2.1"/></svg>
+    </button>
+  </div>
+  <h1 class="outline"><small class="outline">踩格子・翻驚喜卡・集星星</small>好習慣大富翁</h1>
+
+  <div class="island">
+<div class="board" id="board"></div>
+  </div>
+
+  <section class="scores">
+    <h2>集星榜 <small id="goalTxt"></small></h2>
+    <div id="scoreList" style="display:flex;flex-direction:column;gap:12px"></div>
+    <div class="legend">
+      <span style="--c:#FF7A3D">冷笑話火山</span>
+      <span style="--c:#FFC0D9">讚美彩虹島</span>
+      <span style="--c:#3FBF4E">全家任務島</span>
+      <span style="--c:#8F5BE8">驚喜卡：好事加星、糟糕扣星</span>
+    </div>
+  </section>
+</div>
+
+<div class="overlay" id="overlay" hidden><div class="sheet" id="sheet" role="dialog" aria-modal="true"></div></div>
+<div class="toast" id="toast" hidden></div>
+
+<script>
+const COLORS=['#F2805B','#5B8DEF','#3FB37A','#B86BE0'];
+const CAT={learn:{n:'學習',c:'var(--learn)'},life:{n:'生活',c:'var(--life)'},health:{n:'健康',c:'var(--health)'}};
+const BOARD=[
+  {t:'start'},{t:'mystery'},{t:'mystery'},{t:'mystery'},
+  {t:'volcano'},{t:'mystery'},{t:'mystery'},{t:'mystery'},
+  {t:'praise'},{t:'mystery'},{t:'mystery'},{t:'mystery'},
+  {t:'family'},{t:'mystery'},{t:'mystery'},{t:'mystery'}
+];
+const POS=[[0,0],[0,1],[0,2],[0,3],[0,4],[1,4],[2,4],[3,4],[4,4],[4,3],[4,2],[4,1],[4,0],[3,0],[2,0],[1,0]];
+const SPECIAL={
+  start:{lbl:'起點',icon:'GO',c:'#F04B4B'},
+  praise:{lbl:'讚美彩虹島',icon:'🌈',c:'#FFC0D9'},
+  mystery:{lbl:'驚喜卡',icon:'?',c:'#8F5BE8'},
+  lucky:{lbl:'幸運星',icon:'★',c:'#FFCB2B'},
+  family:{lbl:'全家任務島',icon:'🏠',c:'#3FBF4E'},
+  volcano:{lbl:'冷笑話火山',icon:'🌋',c:'#FF7A3D'}
+};
+const JOKES=[
+  ['什麼東西越洗越髒？','水','洗完東西，水就變髒了'],
+  ['哪一種布剪不斷？','瀑布',''],
+  ['什麼門永遠關不上？','球門',''],
+  ['小明的爸爸有三個兒子：大毛、二毛，第三個叫什麼？','小明','題目第一個字就說了！'],
+  ['什麼瓜不能吃？','傻瓜',''],
+  ['什麼車寸步難行？','風車','只會在原地轉圈圈'],
+  ['冰塊最想做什麼事？','退伍','因為當「冰」很辛苦'],
+  ['哪個月有 28 天？','每個月都有',''],
+  ['什麼東西要打破了才能用？','雞蛋',''],
+  ['什麼魚不能吃？','木魚','叩叩叩～'],
+  ['什麼蛋不能吃？','笨蛋',''],
+  ['青蛙為什麼能跳得比樹還高？','因為樹不會跳',''],
+  ['有一個字，大家都會念錯，是什麼字？','「錯」字',''],
+  ['什麼東西越生氣就越大？','脾氣',''],
+  ['什麼牛不吃草？','蝸牛',''],
+  ['哪裡的海一條魚都沒有？','辭海','辭海是一本很厚的字典'],
+  ['鉛筆姓什麼？','姓蕭','因為鉛筆要「削」'],
+  ['哪一種動物最沒有方向感？','麋鹿','麋鹿 → 迷路'],
+  ['什麼東西有很多牙齒，卻從來不咬人？','梳子',''],
+  ['企鵝為什麼只有肚子是白的？','手太短','只洗得到前面'],
+  ['什麼東西你明明有，別人卻用得比你多？','你的名字',''],
+  ['什麼人一年只上一天班？','聖誕老公公',''],
+  ['小白加小白等於什麼？','小白兔','小白 two（兔）'],
+  ['什麼人從來不敢洗澡？','泥娃娃','一洗就融化了'],
+  ['布和紙各怕什麼？','布怕一萬，紙怕萬一','不怕一萬，只怕萬一'],
+  ['什麼書在書店買不到？','秘書',''],
+  ['什麼馬不能騎？','河馬','牠會游走'],
+  ['什麼東西明明是你的，你卻很少用？','你的名字的倒數第二個字…開玩笑的，是「你的祕密」','好啦，這題太冷了'],
+  ['為什麼數學課本總是很煩惱？','因為它有好多「問題」',''],
+  ['哪一個數字最勤勞？','一，因為「一」直在工作','一直 → 一值'],
+  ['什麼動物最容易被貼在牆上？','海豹','海報 → 海豹']
+];
+const HABITS={
+  learn:[
+    ['今天回家有先寫完功課才去玩嗎',2],['今天有自己整理好書包嗎',2],['今天有看書或閱讀 10 分鐘以上嗎',2],
+    ['今天上課（或工作時）有專心聽講嗎',2],['寫完功課有自己檢查一遍嗎',2],['遇到不會的地方，有主動問人嗎',1],
+    ['今天有複習學過的東西嗎',1],['今天有準時完成該做的事嗎',2]
+  ],
+  life:[
+    ['今天看電視、玩平板有沒有超過 30 分鐘？沒超過才算做到喔',2],['今天有自己收好玩具或東西嗎',1],['今天有幫忙做一件家事嗎',2],
+    ['今天早上有準時起床、沒有賴床嗎',2],['今天吃飯有不挑食嗎',2],['今天有主動跟家人說早安嗎',1],
+    ['用完的東西有放回原位嗎',1],['有先準備好明天要穿的衣服或要帶的東西嗎',1],['今天有對家人說「謝謝」嗎',1],['做錯事的時候有說「對不起」嗎',2]
+  ],
+  health:[
+    ['昨天睡前有刷牙嗎',2],['今天吃飯前有洗手嗎',1],['昨天晚上有在 10 點前上床睡覺嗎',2],
+    ['今天有運動或跑跑跳跳 20 分鐘嗎',2],['今天有喝足夠的水嗎',1],['今天有吃蔬菜嗎',2],['看書或用平板時有保持適當距離嗎',1],['今天吃完東西有漱口嗎',1]
+  ]
+};
+const FAMILY=['全家一起做 10 下開合跳！','全家一起擊掌，大喊「我們是好習慣家庭」！','全家一起深呼吸三次，再一起笑三聲！','每個人說出今天一件開心的事！','全家一起伸懶腰，碰到腳趾頭！'];
+const PRAISE=['說一句稱讚右邊家人的話','說出一件家人最近幫你的事，並說謝謝','誇獎一位家人今天做得很棒的地方','給一位家人一個大大的擁抱'];
+
+const $=s=>document.querySelector(s);
+const esc=s=>String(s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const RM=window.matchMedia&&matchMedia('(prefers-reduced-motion: reduce)').matches;
+const wait=ms=>new Promise(r=>setTimeout(r,RM?0:ms));
+const shuffle=a=>{for(let i=a.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[a[i],a[j]]=[a[j],a[i]]}return a};
+
+let state;
+function freshState(names,goal){
+  return {players:names.map((n,i)=>({name:n,color:COLORS[i],pos:0,stars:0,double:false})),turn:0,goal,die:3,decks:{},busy:false};
+}
+/* 原創木頭玩偶棋子：每位玩家一種頭飾 */
+function fig(i,c){
+  const dk=`color-mix(in srgb,${c} 65%,#000)`;
+  const hats=[
+    `<path d="M9 15a11 10 0 0 1 22 0z" fill="${c}"/><rect x="18" y="15" width="16" height="3.4" rx="1.7" fill="${dk}"/><circle cx="20" cy="5" r="1.8" fill="${dk}"/>`,
+    `<circle cx="20" cy="4" r="4.6" fill="#6B3E26"/><path d="M8.5 16a11.5 11 0 0 1 23 0c-3-4-8-5-11.5-5S11 12 8.5 16z" fill="#6B3E26"/><path d="M26 8l5-3v6z M26 8l5 3" fill="${c}"/><circle cx="26" cy="8" r="1.6" fill="${dk}"/>`,
+    `<path d="M9 15a11 10 0 0 1 22 0z" fill="${c}"/><rect x="19.2" y="1.5" width="1.6" height="4" fill="#555"/><ellipse cx="14.5" cy="2" rx="5.5" ry="1.6" fill="#FFCB2B"/><ellipse cx="25.5" cy="2" rx="5.5" ry="1.6" fill="#3FBF4E"/>`,
+    `<path d="M9 10l2-8 6 5z M31 10l-2-8-6 5z" fill="${c}"/><path d="M8.5 13a11.5 9 0 0 1 23 0" stroke="${c}" stroke-width="2.6" fill="none"/>`
+  ];
+  return `<svg viewBox="0 0 40 52" aria-hidden="true">
+    <ellipse cx="20" cy="49.5" rx="13" ry="2.5" fill="rgba(0,0,0,.25)"/>
+    <path d="M12 29h16l5 17a3 3 0 0 1-3 3H10a3 3 0 0 1-3-3z" fill="${c}"/>
+    <path d="M12 29h16l1 4H11z" fill="${dk}"/>
+    <path d="M9 32c-3 2-4 5-3 8M31 32c3 2 4 5 3 8" stroke="${c}" stroke-width="4" stroke-linecap="round" fill="none"/>
+    <circle cx="6" cy="40" r="2.4" fill="#FFD3A8"/><circle cx="34" cy="40" r="2.4" fill="#FFD3A8"/>
+    <circle cx="20" cy="18" r="11.5" fill="#FFD9B3"/>
+    <circle cx="16" cy="18" r="1.6" fill="#2B2B2B"/><circle cx="24" cy="18" r="1.6" fill="#2B2B2B"/>
+    <path d="M16.5 22.5q3.5 3 7 0" stroke="#2B2B2B" stroke-width="1.4" fill="none" stroke-linecap="round"/>
+    <circle cx="13.3" cy="21.5" r="1.8" fill="#FF9AA2" opacity=".7"/><circle cx="26.7" cy="21.5" r="1.8" fill="#FF9AA2" opacity=".7"/>
+    ${hats[i%4]}
+  </svg>`;
+}
+function save(){try{localStorage.setItem('fhm-state',JSON.stringify({...state,busy:false}))}catch(e){}}
+function load(){try{const s=JSON.parse(localStorage.getItem('fhm-state'));if(s&&s.players)return s}catch(e){}return null}
+function draw(key,arr){
+  if(!state.decks[key]||!state.decks[key].length)state.decks[key]=shuffle(arr.map((_,i)=>i));
+  return arr[state.decks[key].pop()];
+}
+const cur=()=>state.players[state.turn];
+
+/* ---------- render ---------- */
+const board=$('#board');
+function buildBoard(){
+  board.innerHTML='';
+  BOARD.forEach((sq,i)=>{
+    const d=document.createElement('div');
+    const [r,c]=POS[i];
+    d.style.gridRow=r+1;d.style.gridColumn=c+1;
+    let lbl,hint,col;
+    if(sq.t==='joke'){lbl=CAT[sq.cat].n;hint='冷笑話';col=CAT[sq.cat].c}
+    else{({lbl,hint,c:col}=SPECIAL[sq.t])}
+    d.className='cell '+sq.t;d.style.setProperty('--d',(-i*0.37)+'s');
+    d.style.setProperty('--c',col);
+    d.innerHTML=`<div class="disc">${SPECIAL[sq.t]?.icon||'?'}</div><div class="lbl">${lbl}</div><div class="tokens" id="t${i}"></div>`;
+    board.appendChild(d);
+  });
+  const ctr=document.createElement('div');
+  ctr.className='center';
+  ctr.innerHTML=`<div class="turn" id="turnTxt"></div><div class="die" id="die" aria-label="骰子">${'<i></i>'.repeat(9)}</div>
+    <button class="roll-btn" id="rollBtn" type="button" aria-label="擲骰子">GO</button>
+    <span class="tree" style="left:8%;top:10%"></span><span class="tree" style="right:9%;top:16%"></span><span class="tree" style="right:14%;bottom:12%"></span>`;
+  board.appendChild(ctr);
+  $('#rollBtn').onclick=roll;
+}
+const PIPS={1:[4],2:[0,8],3:[0,4,8],4:[0,2,6,8],5:[0,2,4,6,8],6:[0,2,3,5,6,8]};
+function showDie(n){[...$('#die').children].forEach((el,i)=>el.classList.toggle('on',PIPS[n].includes(i)))}
+function render(){
+  document.querySelectorAll('.tokens').forEach(t=>t.innerHTML='');
+  document.querySelectorAll('.cell').forEach(c=>c.classList.remove('here'));
+  state.players.forEach((p,i)=>{
+    const t=document.createElement('div');
+    t.className='tok'+(i===state.turn?' active':'');
+    t.style.setProperty('--pc',p.color);
+    t.innerHTML=fig(i,p.color);
+    t.title=p.name;
+    $('#t'+p.pos).appendChild(t);
+  });
+  $('#t'+cur().pos).parentElement.classList.add('here');
+  const tt=$('#turnTxt');tt.style.setProperty('--pc',cur().color);
+  tt.innerHTML=`輪到 <span>${esc(cur().name)}</span>`;
+  const lead=Math.max(...state.players.map(p=>p.stars));
+  $('#questTxt').innerHTML=`最高星數 <b>${Math.min(lead,state.goal)} / ${state.goal}</b>`;
+  $('#goalTxt').textContent=`目標 ${state.goal} ⭐`;
+  showDie(state.die);
+  $('#rollBtn').disabled=state.busy;
+  $('#scoreList').innerHTML=state.players.map((p,i)=>`
+    <div class="prow${i===state.turn?' cur':''}" style="--pc:${p.color}">
+      <span class="ava">${fig(i,p.color)}</span>
+      <div class="info"><span class="nm">${esc(p.name)}${i===state.turn?'<em>行動中</em>':''}</span>
+      <div class="bar"><b style="width:${Math.min(100,p.stars/state.goal*100)}%"></b></div></div>
+      <span class="pts" id="pts${i}">${p.stars} ★${p.double?'<span class="badge2">×2</span>':''}</span>
+    </div>`).join('');
+}
+function toast(msg){
+  const t=$('#toast');t.textContent=msg;t.hidden=false;
+  clearTimeout(toast._t);toast._t=setTimeout(()=>t.hidden=true,2200);
+}
+function addStars(i,n){
+  state.players[i].stars+=n;render();
+  const el=$('#pts'+i);if(el){el.classList.remove('pop');void el.offsetWidth;el.classList.add('pop')}
+}
+
+/* ---------- sheet ---------- */
+const overlay=$('#overlay'),sheet=$('#sheet');
+function openSheet(html,handlers){
+  sheet.innerHTML=html;overlay.hidden=false;
+  sheet.querySelectorAll('[data-act]').forEach(b=>b.onclick=()=>handlers[b.dataset.act](b));
+  const f=sheet.querySelector('button');f&&f.focus({preventScroll:true});
+}
+function closeSheet(){overlay.hidden=true;sheet.innerHTML=''}
+const whoLine=()=>`<div class="who" style="--pc:${cur().color}"><b>${esc(cur().name)}</b> 的回合</div>`;
+
+/* ---------- turn flow ---------- */
+async function roll(){
+  if(state.busy)return;
+  state.busy=true;render();
+  const die=$('#die');
+  for(let k=0;k<6;k++){showDie(1+Math.floor(Math.random()*6));die.classList.remove('roll');void die.offsetWidth;die.classList.add('roll');await wait(80)}
+  const n=1+Math.floor(Math.random()*6);
+  state.die=n;showDie(n);await wait(350);
+  const p=cur();
+  for(let s=0;s<n;s++){
+    p.pos=(p.pos+1)%BOARD.length;
+    if(p.pos===0){p.stars+=1;toast(`${p.name} 經過起點 +1⭐`)}
+    render();await wait(230);
+  }
+  await wait(200);
+  land(p.pos);
+}
+function land(pos){
+  const sq=BOARD[pos];
+  if(sq.t==='joke')return showJoke(sq.cat);
+  if(sq.t==='start')return openSheet(`<span class="tag" style="--c:#F04B4B">起點</span>${whoLine()}
+    <h3>回到起點，休息一下！</h3><p>經過起點的星星已經發給你了。喝口水再出發吧。</p>
+    <div class="btns"><button class="btn primary" data-act="ok">好的</button></div>`,{ok:endTurn});
+  if(sq.t==='praise'){const t=draw('praise',PRAISE);return openSheet(`<span class="tag" style="--c:#F06BA8">讚美彩虹島</span>${whoLine()}
+    <h3>${t}</h3><p>說完的話，就可以拿 1 顆星星！</p>
+    <div class="btns"><button class="btn yes" data-act="y">我說了 +1⭐</button><button class="btn" data-act="n">跳過</button></div>`,
+    {y:()=>{addStars(state.turn,1);endTurn()},n:endTurn})}
+  if(sq.t==='lucky')return openSheet(`<span class="tag" style="--c:#E0A800">幸運星</span>${whoLine()}
+    <h3>下一個好習慣題目，星星加倍！</h3><p>好好把握下次機會喔。</p>
+    <div class="btns"><button class="btn primary" data-act="ok">太棒了</button></div>`,{ok:()=>{cur().double=true;endTurn()}});
+  if(sq.t==='volcano')return showVolcano();
+  if(sq.t==='mystery')return showMystery();
+  if(sq.t==='family'){const t=draw('family',FAMILY);return openSheet(`<span class="tag" style="--c:#3FBF4E">全家任務島</span>${whoLine()}
+    <h3>${t}</h3><p>全家一起完成，每個人都加 1 顆星星！</p>
+    <div class="btns"><button class="btn yes" data-act="y">完成了 全家 +1⭐</button><button class="btn" data-act="n">下次再做</button></div>`,
+    {y:()=>{state.players.forEach((_,i)=>addStars(i,1));endTurn()},n:endTurn})}
+}
+const BAD=[
+  ['玩具丟得滿地都是，有人踩到哇哇叫',1,'玩完記得收回玩具箱'],
+  ['拖拖拉拉不寫功課，玩的時間都沒了',2,'先寫功課，再開心玩'],
+  ['偷偷多看了好久的平板',2,'設定計時器，時間到就關掉'],
+  ['早上賴床，差點遲到',1,'前一晚早點睡'],
+  ['跟家人頂嘴、說話不禮貌',2,'生氣時先深呼吸三次'],
+  ['吃飯一直挑食，把青菜推到旁邊',1,'先吃一口青菜試試看'],
+  ['睡前忘記刷牙，蛀牙蟲來開派對',2,'刷牙後再上床'],
+  ['用完東西沒放回去，大家找不到',1,'用完放回原位'],
+  ['在家裡跑跳太大聲，吵到鄰居',1,'室內走路輕輕的'],
+  ['忘記帶聯絡簿，老師在找你',1,'睡前檢查書包'],
+  ['弄壞東西卻不說，偷偷藏起來',2,'勇敢說出來，說對不起'],
+  ['飯前沒洗手就抓東西吃',1,'飯前先洗手']
+];
+const GOOD=Object.values(HABITS).flat();
+function showMystery(){
+  const good=Math.random()<0.65;
+  const p=cur();
+  if(good){
+    const [h,base]=draw('good',GOOD);const pts=base*(p.double?2:1);
+    openSheet(`<span class="tag" style="--c:#8F5BE8">驚喜卡</span>${whoLine()}
+      <div class="card" id="card"><div class="card-in"><div class="face back">?<small>點我翻卡</small></div>
+        <div class="face front" style="--fc:#2FA83E"><b>好事卡 +${pts}⭐</b><span>${esc(h)}${/[？?]/.test(h)?'':'？'}</span></div></div></div>
+      <div class="btns" id="b1"><button class="btn primary" data-act="flip">翻開卡片</button></div>
+      <div id="b2" hidden style="display:flex;flex-direction:column;gap:10px">
+        <p>誠實回答最重要！大人也要一起回答喔。</p>
+        <div class="btns"><button class="btn yes" data-act="y">有做到 +${pts}⭐</button><button class="btn" data-act="n">還沒，下次加油</button></div>
+      </div>`,
+    {flip:()=>{$('#card').classList.add('flip');$('#b1').hidden=true;setTimeout(()=>$('#b2').hidden=false,RM?0:450)},
+     y:()=>{p.double=false;addStars(state.turn,pts);toast(`好事一件！${p.name} +${pts}⭐`);endTurn()},
+     n:()=>{p.double=false;toast('沒關係，明天一起做到！');endTurn()}});
+  }else{
+    const [b,pts,tip]=draw('bad',BAD);
+    openSheet(`<span class="tag" style="--c:#8F5BE8">驚喜卡</span>${whoLine()}
+      <div class="card" id="card"><div class="card-in"><div class="face back">?<small>點我翻卡</small></div>
+        <div class="face front" style="--fc:#E5483B"><b>糟糕卡 −${pts}⭐</b><span>${esc(b)}</span></div></div></div>
+      <div class="btns" id="b1"><button class="btn primary" data-act="flip">翻開卡片</button></div>
+      <div id="b2" hidden style="display:flex;flex-direction:column;gap:10px">
+        <p>好習慣小撇步：<b style="color:var(--orange-dk)">${esc(tip)}</b></p>
+        <div class="btns"><button class="btn primary" data-act="ok">我記住了</button></div>
+      </div>`,
+    {flip:()=>{$('#card').classList.add('flip');$('#b1').hidden=true;setTimeout(()=>$('#b2').hidden=false,RM?0:450)},
+     ok:()=>{const lost=Math.min(pts,p.stars);if(lost)addStars(state.turn,-lost);toast(lost?`${p.name} −${lost}⭐，下次會更好！`:'還沒有星星可以扣，好險！');endTurn()}});
+  }
+  sheet.querySelector('#card').onclick=()=>{const b=sheet.querySelector('[data-act=flip]');if(b&&!$('#b1').hidden)b.click()};
+}
+function showVolcano(){
+  const [q,a,note]=draw('joke',JOKES);
+  openSheet(`<span class="tag" style="--c:#FF7A3D">冷笑話火山</span>${whoLine()}
+    <div class="lava">🌋</div>
+    <h3>換你來講冷笑話！</h3>
+    <p>大聲唸出題目，讓大家猜 3 秒，再公布答案。有人笑出來，火山就爆發！</p>
+    <div class="answer" style="color:var(--ink);background:#EEF6FF;border-color:#9CCBF5">${esc(q)}</div>
+    <div class="answer" id="ans" hidden>${esc(a)}${note?`<small>${esc(note)}</small>`:''}</div>
+    <div class="btns" id="b1"><button class="btn primary" data-act="show">公布答案</button></div>
+    <div id="b2" hidden style="display:flex;flex-direction:column;gap:10px">
+      <p style="text-align:center;font-weight:700;color:var(--ink)">有幾個人笑出來？</p>
+      <div class="btns laugh">
+        <button class="btn" data-act="l0">沒人笑 😐</button>
+        <button class="btn yes" data-act="l1">1 個人笑 +1⭐</button>
+        <button class="btn yes" data-act="l2">好幾個人笑 +2⭐</button>
+        <button class="btn primary" data-act="l3">全家都笑 +3⭐</button>
+      </div>
+    </div>`,
+  {show:()=>{$('#ans').hidden=false;$('#b1').hidden=true;$('#b2').hidden=false},
+   l0:()=>{toast('火山冷冷的…下次再挑戰！');endTurn()},
+   l1:()=>erupt(1),l2:()=>erupt(2),l3:()=>erupt(3)});
+}
+async function erupt(n){
+  sheet.classList.remove('erupt');void sheet.offsetWidth;sheet.classList.add('erupt');
+  addStars(state.turn,n);toast(`🌋 火山爆發！${cur().name} +${n}⭐`);
+  await wait(650);sheet.classList.remove('erupt');endTurn();
+}
+function showJoke(cat){
+  const [q,a,note]=draw('joke',JOKES);
+  openSheet(`<span class="tag" style="--c:${CAT[cat].c}">冷笑話關卡・${CAT[cat].n}</span>${whoLine()}
+    <h3>${esc(q)}</h3><p>先讓大家猜一猜，再公布答案！</p>
+    <div class="answer" id="ans" hidden>${esc(a)}${note?`<small>${esc(note)}</small>`:''}</div>
+    <div class="btns" id="b1"><button class="btn primary" data-act="show">公布答案</button></div>
+    <div class="btns" id="b2" hidden><button class="btn primary" data-act="next">哈！闖關成功，下一步</button></div>`,
+  {show:()=>{$('#ans').hidden=false;$('#b1').hidden=true;$('#b2').hidden=false;$('#b2 button').focus()},next:()=>showHabit(cat)});
+}
+function showHabit(cat){
+  const [h,base]=draw('habit-'+cat,HABITS[cat]);
+  const p=cur(),pts=base*(p.double?2:1);
+  openSheet(`<span class="tag" style="--c:${CAT[cat].c}">好習慣檢查・${CAT[cat].n}</span>${whoLine()}
+    <h3>${esc(h)}${/[？?]$/.test(h)?'':'？'}</h3>
+    <p>誠實回答最重要！大人也要一起回答喔。${p.double?'<br><b style="color:var(--orange-dk)">幸運星加倍中！</b>':''}</p>
+    <div class="btns"><button class="btn yes" data-act="y">有做到 +${pts}⭐</button><button class="btn" data-act="n">還沒，下次加油</button></div>`,
+  {y:()=>{p.double=false;addStars(state.turn,pts);toast(`太棒了！${p.name} +${pts}⭐`);endTurn()},
+   n:()=>{p.double=false;toast('沒關係，明天一起做到！');endTurn()}});
+}
+function endTurn(){
+  closeSheet();
+  const winner=state.players.find(p=>p.stars>=state.goal);
+  if(winner){state.busy=false;save();render();return showWin()}
+  state.turn=(state.turn+1)%state.players.length;
+  state.busy=false;save();render();
+}
+function showWin(){
+  const ranked=[...state.players].sort((a,b)=>b.stars-a.stars);
+  openSheet(`<div class="big-star">★</div><h3 style="text-align:center">恭喜 ${esc(ranked[0].name)} 集滿 ${state.goal} 顆星！</h3>
+    <p style="text-align:center">每個人都更靠近好習慣了，全家都很棒！</p>
+    <div class="rank">${ranked.map((p,i)=>`<div><span>${i+1}. ${esc(p.name)}</span><b>${p.stars} ⭐</b></div>`).join('')}</div>
+    <div class="btns"><button class="btn primary" data-act="again">再玩一次</button><button class="btn" data-act="set">更換玩家</button></div>`,
+  {again:()=>{state=freshState(state.players.map(p=>p.name),state.goal);closeSheet();save();render()},set:openSetup});
+}
+
+/* ---------- setup ---------- */
+function openSetup(){
+  const names=state.players.map(p=>p.name);
+  const defaults=['爸爸','媽媽','哥哥','妹妹'];
+  openSheet(`<h3>遊戲設定</h3>
+    <div class="form">
+      <label>玩家人數<select id="setCount">${[2,3,4].map(n=>`<option ${n===names.length?'selected':''}>${n}</option>`).join('')}</select></label>
+      <div class="namegrid">${[0,1,2,3].map(i=>`<label id="nl${i}">玩家 ${i+1}<input id="setName${i}" maxlength="6" value="${esc(names[i]||defaults[i])}"></label>`).join('')}</div>
+      <label>獲勝星星數<select id="setGoal">${[15,20,30,40].map(n=>`<option value="${n}" ${n===state.goal?'selected':''}>${n} 顆（${n<=15?'約 15 分鐘':n<=20?'約 20 分鐘':n<=30?'約 30 分鐘':'約 40 分鐘'}）</option>`).join('')}</select></label>
+      <p>開始新遊戲會把目前的星星和位置歸零。</p>
+    </div>
+    <div class="btns"><button class="btn primary" data-act="go">開始新遊戲</button><button class="btn" data-act="cancel">取消</button></div>`,
+  {go:()=>{
+      const n=+$('#setCount').value;
+      const ns=[...Array(n)].map((_,i)=>($('#setName'+i).value.trim()||defaults[i]));
+      state=freshState(ns,+$('#setGoal').value);closeSheet();save();render();toast('新遊戲開始！'+ns[0]+' 先擲骰子');
+    },cancel:()=>{closeSheet();if(state.players.some(p=>p.stars>=state.goal))showWin()}});
+  const sync=()=>{const n=+$('#setCount').value;[0,1,2,3].forEach(i=>$('#nl'+i).hidden=i>=n)};
+  $('#setCount').onchange=sync;sync();
+}
+$('#setupBtn').onclick=()=>{if(!state.busy)openSetup()};
+
+
+function sparkles(){
+  const c=document.getElementById('spark');if(!c||RM)return;
+  const x=c.getContext('2d');let W,H,ps=[];
+  const fit=()=>{W=c.width=innerWidth*devicePixelRatio;H=c.height=innerHeight*devicePixelRatio};
+  fit();addEventListener('resize',fit);
+  for(let i=0;i<46;i++)ps.push({x:Math.random(),y:Math.random(),r:Math.random()*1.6+.5,s:Math.random()*.00025+.00008,t:Math.random()*6});
+  (function f(){x.clearRect(0,0,W,H);
+    for(const p of ps){p.y-=p.s;p.t+=.03;if(p.y<0){p.y=1;p.x=Math.random()}
+      x.globalAlpha=.35+.45*Math.abs(Math.sin(p.t));x.fillStyle='#FFE7B0';x.beginPath();
+      x.arc(p.x*W,p.y*H,p.r*devicePixelRatio,0,7);x.fill()}
+    requestAnimationFrame(f)})();
+}
+/* ---------- boot ---------- */
+function start(data){
+  state=(data&&data.players)?data:(load()||freshState(['爸爸','媽媽','小寶'],20));
+  state.busy=false;
+  buildBoard();render();
+  window.claude?.hot?.snapshot?.(()=>state);
+  sparkles();
+}
+window.claude?.hot?.ready ? window.claude.hot.ready(start) : start(window.claude?.hot?.data);
+</script>
+
+</html>
